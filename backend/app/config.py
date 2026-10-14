@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     groq_model: str ="llama-3.3-70b-versatile"
 
     return_window_days: int = 14
-    auto_approve_refunds_ceiling_eur: float = 100.0
+    auto_approve_refund_ceiling_eur: float = 100.0
 
     database_url: str = "sqlite:///./ecommerce.db"
 

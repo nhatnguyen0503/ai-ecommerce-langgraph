@@ -29,6 +29,6 @@ def config_check():
     return {
         "model": settings.groq_model,
         "return_window_days": settings.return_window_days,
-        "ceiling_eur": settings.auto_approve_refunds_ceiling_eur,
+        "ceiling_eur": settings.auto_approve_refund_ceiling_eur,
         "has_api_key": bool(settings.groq_api_key),
     }
