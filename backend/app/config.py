@@ -1,12 +1,13 @@
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import SecretStr
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # LLM (Groq -- https://console.groq.com for keys + the current model catalog)
-    groq_api_key: str = ""
+    groq_api_key: SecretStr = ""
     groq_model: str ="llama-3.3-70b-versatile"
 
     # Business rules
