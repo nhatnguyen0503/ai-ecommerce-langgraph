@@ -1,13 +1,18 @@
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import SecretStr
+from pydantic import SecretStr, model_validator
 from pathlib import Path
+from typing import Literal
+
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent  # .../backend
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file= BACKEND_DIR / ".env", extra="ignore")
+
+    # Environment
+    app_env: Literal["dev", "test", "prod"] = "dev"
 
     # LLM (Groq -- https://console.groq.com for keys + the current model catalog)
     groq_api_key: SecretStr = ""
@@ -24,6 +29,12 @@ class Settings(BaseSettings):
 
     # CORS
     frontend_origin: str = "http://localhost:5173"
+
+    @model_validator(mode="after")
+    def _require_key_in_prod(self):
+        if self.app_env == "prod" and not self.groq_api_key:
+            raise ValueError("GROQ_API_KEY is required in production")
+        return self
 
 
 @lru_cache
