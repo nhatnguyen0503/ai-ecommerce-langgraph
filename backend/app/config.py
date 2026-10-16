@@ -2,9 +2,12 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import SecretStr
+from pathlib import Path
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent  # .../backend
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file= BACKEND_DIR / ".env", extra="ignore")
 
     # LLM (Groq -- https://console.groq.com for keys + the current model catalog)
     groq_api_key: SecretStr = ""
