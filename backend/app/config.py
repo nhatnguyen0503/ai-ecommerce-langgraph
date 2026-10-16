@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     return_window_days: int = 14
     auto_approve_refund_ceiling_eur: float = 100.0
 
-    # NOTE: relative paths, resolved from CWD; replaced by Postgres URL in item #5
     # Storage
+    # NOTE: relative paths, resolved from CWD; replaced by Postgres URL in item #5
     database_url: str = "sqlite:///./ecommerce.db"
     checkpoint_db_path: str = "./checkpoints.sqlite"
 
