@@ -10,6 +10,13 @@ Backend: **Python + FastAPI + LangGraph + Groq (via langchain-groq)**
 Frontend: **React + Vite**
 Data: **SQLite** (mock orders, standing in for the existing Laravel order DB)
 
+> **Repository status — work in progress**
+>
+> - `backend/app_reference/` is the original working prototype (full LangGraph flow, kept as a reference).
+> - `backend/app/` is the production-style rebuild in progress: typed settings (pydantic-settings),
+>   unit tests (pytest), Alembic migrations and uv-managed dependencies. Features are moved over
+>   from the prototype step by step, each through its own pull request.
+
 ## How the human-in-the-loop flow works
 
 ```
