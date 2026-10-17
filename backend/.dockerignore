@@ -1,0 +1,36 @@
+# .dockerignore — files NOT sent to the Docker build context.
+# Paths are relative to backend/ (the build context), so no "backend/" prefix.
+# Rule of thumb: if the production server does not need it to run the app, ignore it.
+
+# --- Secrets ---------------------------------------------------------------
+# Real secrets are injected at runtime as environment variables, never baked into the image.
+.env
+.env.example
+
+# --- Local data ------------------------------------------------------------
+# Dev databases from this machine. Production uses its own DB (Postgres + volume);
+# the schema is created by Alembic migrations, which ARE kept in the image.
+*.db
+*.sqlite
+*.sqlite-*
+
+# --- Python environment & cache -------------------------------------------
+# Dependencies are reinstalled inside the image from pyproject.toml + uv.lock.
+.venv/
+**/__pycache__/
+**/*.pyc
+
+# --- Tests -----------------------------------------------------------------
+# The server runs the app, not the test suite (CI runs tests separately).
+tests/
+pytest.ini
+.pytest_cache/
+
+# --- Reference code & scratch files ---------------------------------------
+app_reference/
+debug_schema.py
+
+# --- Editor / version control / OS ----------------------------------------
+.idea/
+.git
+.DS_Store
