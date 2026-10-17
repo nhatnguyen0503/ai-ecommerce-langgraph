@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 class OrderItem(BaseModel):
     name: str
-    qtr: int
+    qty: int
     price: float
 
 class OrderOut(BaseModel):
