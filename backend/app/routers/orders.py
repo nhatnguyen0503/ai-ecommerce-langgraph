@@ -22,4 +22,4 @@ def get_order(order_id: str, service: OrderServiceDep):
 
 @router.get("/{order_id}/return-eligibility", response_model=ReturnEligibilityOut)
 def get_return_eligibility(order_id: str, service: OrderServiceDep):
-    return service.check_return(order_id)
+    return service.get_return_eligibility(order_id)

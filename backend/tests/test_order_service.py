@@ -36,10 +36,10 @@ def test_get_order_missing_raises(service):
         service.get_order("FI-404")
 
 def test_check_return_within_window(service):
-    result = service.check_return("FI-1", now=NOW)
+    result = service.get_return_eligibility("FI-1", now=NOW)
     assert result["eligible"] is True
 
 
 def test_check_return_past_window(service):
-    result = service.check_return("FI-2", now=NOW)
+    result = service.get_return_eligibility("FI-2", now=NOW)
     assert result["eligible"] is False

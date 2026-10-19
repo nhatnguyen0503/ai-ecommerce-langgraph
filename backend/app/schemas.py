@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -18,13 +17,13 @@ class OrderOut(BaseModel):
     status: str
     warehouse: str
     order_date: datetime
-    delivered_date: Optional[datetime] = None
+    delivered_date: datetime | None
 
-    model_config = {"from_attributes": True}  # cho phép đọc thẳng từ object SQLAlchemy
+    model_config = {"from_attributes": True}  # allows Pydantic to read from SQLAlchemy model attributes
 
 class ReturnEligibilityOut(BaseModel):
     eligible: bool
-    days_since_delivery: Optional[int] = None
+    days_since_delivery: int | None = None
     reason: str
 
 

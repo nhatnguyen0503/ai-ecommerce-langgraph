@@ -28,7 +28,7 @@ class OrderService:
             raise OrderNotFoundError(normalized_id)
         return order
 
-    def check_return(self, order_id: str, now: datetime | None = None) -> dict:
+    def get_return_eligibility(self, order_id: str, now: datetime | None = None) -> dict:
         order = self.get_order(order_id)
         return check_return_eligibility(
             {

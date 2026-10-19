@@ -1,40 +1,17 @@
 from datetime import datetime
-from typing import Any, Optional
-
-from sqlalchemy.orm import Session
+from typing import Any
 
 from app.config import get_settings
 
-from app.models import Order
-
-
 settings = get_settings()
 
-def find_order(db: Session, order_id: str) -> Optional[dict[str, Any]]:
-    """Check order and return order by dict type, if not return None"""
-    normalized_id = order_id.strip().upper()
-    order = db.query(Order).filter(Order.id == normalized_id).first()
-    if order is None:
-        return None
-    return {
-        "id": order.id,
-        "customer_name": order.customer_name,
-        "customer_email": order.customer_email,
-        "items": order.items,
-        "total_amount": order.total_amount,
-        "currency": order.currency,
-        "status": order.status,
-        "warehouse": order.warehouse,
-        "order_date": order.order_date.isoformat(),
-        "delivered_date": order.delivered_date.isoformat() if order.delivered_date else None,
-    }
 
 def check_return_eligibility(
         order: dict[str, Any],
-        now: Optional[datetime] = None,
-        window_days: Optional[int] = None,
-)-> dict[str, Any]:
-    now  = now or datetime.utcnow()
+        now: datetime | None = None,
+        window_days: int | None = None,
+) -> dict[str, Any]:
+    now = now or datetime.utcnow()
     window = window_days if window_days is not None else settings.return_window_days
 
     if not order.get("delivered_date"):
@@ -54,4 +31,3 @@ def check_return_eligibility(
         reason = (f"Delivered {days_since} day(s) ago, past the {window}-day return window "
                   f"by {days_since - window} day(s).")
     return {"eligible": eligible, "days_since_delivery": days_since, "reason": reason}
-
