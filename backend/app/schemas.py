@@ -22,5 +22,9 @@ class OrderOut(BaseModel):
 
     model_config = {"from_attributes": True}  # cho phép đọc thẳng từ object SQLAlchemy
 
+class ReturnEligibilityOut(BaseModel):
+    eligible: bool
+    days_since_delivery: Optional[int] = None
+    reason: str
 
 
