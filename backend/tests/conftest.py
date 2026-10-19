@@ -1,12 +1,15 @@
 from datetime import datetime, timedelta
 
+from fastapi.testclient import TestClient
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.database import Base
+from app.database import Base, get_db
 from app.models import Order
+from app.main import app
 
 NOW = datetime(2026, 10, 10, 12, 0, 0)
 
@@ -34,3 +37,10 @@ def db():
     session.commit()
     yield session
     session.close()
+
+@pytest.fixture()
+def client(db):
+    app.dependency_overrides[get_db] = lambda: db
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
