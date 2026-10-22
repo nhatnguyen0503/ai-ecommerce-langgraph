@@ -6,18 +6,21 @@ pauses itself with LangGraph's **human-in-the-loop** interrupt until an admin
 approves or rejects the request from a small dashboard. Once decided, the
 agent resumes on its own and "emails" the customer the outcome.
 
-Backend: **Python + FastAPI + LangGraph + Groq (via langchain-groq)**
-Frontend: **React + Vite**
-Data: **SQLite** (mock orders, standing in for the existing Laravel order DB)
+- Backend: **Python 3.10, FastAPI, SQLAlchemy 2.0, LangGraph, Groq (via langchain-groq)**
+- Data: **PostgreSQL 17** (Docker Compose) with **Alembic** migrations; SQLite also works for a quick run
+- Frontend: **React + Vite**
+- Tooling: **uv**, **pytest**
 
-> **Repository status — work in progress**
+> **Repository status -- work in progress**
 >
-> - `backend/app_reference/` is the original working prototype (full LangGraph flow, kept as a reference).
-> - `backend/app/` is the production-style rebuild in progress: typed settings (pydantic-settings),
->   unit tests (pytest), Alembic migrations and uv-managed dependencies. Features are moved over
->   from the prototype step by step, each through its own pull request.
+> - `backend/app_reference/` is the original working prototype (full LangGraph chat and admin approval flow, kept as a reference).
+> - `backend/app/` is the production-style rebuild. Done so far: typed settings (pydantic-settings),
+>   layered architecture (router -> service -> repository), PostgreSQL + Alembic, and 23 pytest tests.
+>   The LangGraph chat and admin flow are moved over from the prototype step by step, each through its own pull request.
 
 ## How the human-in-the-loop flow works
+
+_This flow runs in the prototype (`backend/app_reference/`) and is being moved into `backend/app/`._
 
 ```
 START -> extract_intent (the LLM reads the message, pulls out an order id / return intent)
@@ -60,50 +63,115 @@ backend restarts while a refund is pending.
 The 100 EUR ceiling and the 14-day window are both configurable in
 `backend/.env` (`AUTO_APPROVE_REFUND_CEILING_EUR`, `RETURN_WINDOW_DAYS`).
 
+## Architecture (`backend/app`)
+
+```
+HTTP request
+  -> routers/orders.py                 receives the request, calls the service
+  -> services/order_service.py         business flow: normalizes the order id, runs the
+       |                               14-day check, raises OrderNotFoundError
+       +-> agent/business.py           pure rule: is the order still returnable?
+  -> repositories/order_repository.py  database access (SQLAlchemy 2.0 select)
+  -> PostgreSQL
+```
+
+- `dependencies.py` wires the layers per request with FastAPI `Depends` (session -> repository -> service).
+- `main.py` turns `OrderNotFoundError` into an HTTP 404 in one place.
+- The decisions (order lookup, 14-day window, 100 EUR ceiling) are plain Python and fully tested.
+  The LangGraph agent will call `OrderService` directly as its tools; the LLM only reads the
+  customer's message and writes the reply.
+
 ## Project layout
 
 ```
+docker-compose.yml          PostgreSQL 17 for local development
 backend/
   app/
-    agent/          LangGraph graph, nodes, business rules (order lookup, eligibility)
-    routers/         chat / orders / admin FastAPI routes
-    services/         mocked email sender
-    models.py, schemas.py, database.py, config.py, seed.py
-  requirements.txt
-  .env.example
+    routers/                HTTP endpoints
+    services/               business flow (OrderService)
+    repositories/           database access (OrderRepository)
+    agent/business.py       pure business rules (14-day return window)
+    models.py, schemas.py, database.py, config.py, dependencies.py, seed.py
+  app_reference/            original prototype (LangGraph chat + admin approval flow)
+  alembic/                  database migrations
+  tests/                    repository, service and API tests
+  pyproject.toml, uv.lock   dependencies managed by uv
 frontend/
   src/
-    components/       ChatWidget.jsx (customer chat), AdminDashboard.jsx (approval queue)
-    api.js              fetch wrappers around the backend
-  package.json
+    components/             ChatWidget.jsx (customer chat), AdminDashboard.jsx (approval queue)
+    api.js                  fetch wrappers around the backend
 ```
+
+## API (current rebuild)
+
+| Method | Path | What it does |
+| --- | --- | --- |
+| GET | `/health` | Health check |
+| GET | `/orders` | List all orders |
+| GET | `/orders/{order_id}` | One order; the id is case-insensitive (`fi-10234` works) |
+| GET | `/orders/{order_id}/return-eligibility` | Is the order inside the 14-day return window? |
+
+Unknown order ids return `404` with `{"detail": "Order XXX not found"}`.
 
 ## Running it locally
 
-### 1. Backend
+Prerequisites: [Docker Desktop](https://www.docker.com/products/docker-desktop/),
+[uv](https://docs.astral.sh/uv/), and Node.js for the frontend.
+
+### 1. Database
+
+From the repository root:
+
+```bash
+cp backend/.env.example backend/.env
+# Edit backend/.env: set POSTGRES_PASSWORD, use the same password in DATABASE_URL,
+# and paste your GROQ_API_KEY.
+docker compose up -d db
+docker compose ps        # wait until STATUS shows "healthy"
+```
+
+No Docker? Set `DATABASE_URL=sqlite:///./ecommerce.db` in `backend/.env` and skip this step.
+
+### 2. Backend
 
 ```bash
 cd backend
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env        # then paste your GROQ_API_KEY into .env
-uvicorn app.main:app --reload --port 8000
+uv sync                          # install dependencies from uv.lock
+uv run alembic upgrade head      # create the tables
+uv run uvicorn app.main:app --reload
 ```
 
-On first startup the app auto-creates `ecommerce.db` and seeds it with 5
-sample Finnish orders (`FI-10234` .. `FI-10238`) covering every branch of the
-graph: a cheap auto-approved return, an expensive one that needs admin
-approval, an order past the 14-day window, and one that hasn't been
-delivered yet. See `backend/app/seed.py` for the exact numbers.
+On first startup the app seeds 5 sample Finnish orders (`FI-10234` .. `FI-10238`)
+covering every case: a cheap auto-approved return, an expensive one that needs admin
+approval, an order past the 14-day window, and one that hasn't been delivered yet.
+See `backend/app/seed.py` for the exact numbers.
 
-API docs are auto-served at `http://localhost:8000/docs`.
+API docs are served at `http://localhost:8000/docs`.
 
-### 2. Frontend
+### 3. Tests
+
+```bash
+cd backend
+uv run pytest
+```
+
+Tests use in-memory SQLite and FastAPI `dependency_overrides`, so they need no Docker.
+
+### 4. Frontend and the full chat loop (prototype)
+
+The chat and admin endpoints still live in the prototype. Run it on its own SQLite file:
+
+```bash
+cd backend
+DATABASE_URL=sqlite:///./prototype.db uv run uvicorn app_reference.main:app --reload
+```
+
+Then the frontend:
 
 ```bash
 cd frontend
 npm install
-cp .env.example .env        # defaults to http://localhost:8000, adjust if needed
+cp .env.example .env        # defaults to http://localhost:8000
 npm run dev
 ```
 
@@ -111,45 +179,24 @@ Open `http://localhost:5173`. The **Customer chat** tab is the storefront
 widget; the **Admin dashboard** tab is where refunds over 100 EUR show up for
 approval, alongside a log of every (mocked) outbound email.
 
-### 3. Try the full loop
-
 1. In the chat tab: `I want to return order FI-10236, it arrived damaged.`
    FI-10236 is a delivered, in-window, 219 EUR order -- above the 100 EUR
-   ceiling, so the agent will say the request is submitted for review.
+   ceiling, so the agent says the request is submitted for review.
 2. Switch to the Admin dashboard tab -- the request appears within ~5s.
    Click **Approve** (or **Reject**).
-3. Switch back to the chat tab -- within a few seconds it auto-updates with
-   the agent's final message, and the Admin dashboard's email log shows the
-   mocked confirmation email that "went out" to the customer.
-4. Try `I want to return order FI-10234` (29.90 EUR) to see the auto-approve
-   path -- no admin step needed.
-5. Try `I want to return order FI-10235` (delivered 20 days ago) to see the
-   14-day policy reject it outright.
+3. Switch back to the chat tab -- within a few seconds it shows the agent's
+   final message, and the email log shows the mocked confirmation email.
+4. Try `I want to return order FI-10234` (29.90 EUR) to see the auto-approve path.
+5. Try `I want to return order FI-10235` (delivered 18 days ago) to see the
+   14-day policy reject it.
 
 ## Notes / what's mocked vs. real
 
-- **Orders**: seeded directly into SQLite in this repo. In production this
-  would be an HTTP call into the existing Laravel order API -- swap
-  `app/agent/business.py::find_order` for that call and nothing else in the
-  graph needs to change.
-- **Email**: `app/services/email.py` logs to the console and writes a row to
-  the `sent_emails` table instead of hitting a real provider. Swap in
-  SMTP/SendGrid/etc. there when you're ready.
-- **Auth**: the admin dashboard has no login in this scaffold -- add one
-  before exposing `/admin/*` beyond localhost.
-- **LLM**: uses Groq (`GROQ_MODEL` in `.env`, defaults to `llama-3.3-70b-versatile`
-  -- check [console.groq.com](https://console.groq.com) for the current model
-  catalog, since Groq periodically retires/renames hosted models) only for two
-  things: pulling structured intent out of the customer's message, and
-  phrasing the final reply. All the actual business logic (order lookup, the
-  14-day check, the 100 EUR approval ceiling) is plain deterministic Python,
-  not left to the model.
-
-## A note on this build
-
-This scaffold was written and syntax-checked in a sandboxed environment that
-didn't have outbound access to PyPI or npm, so the Python/Node dependencies
-could not actually be installed and the app could not be run end-to-end here.
-The code was reviewed carefully against the LangGraph/FastAPI/React APIs it
-uses, but please treat the first `pip install` / `npm install` + run-through
-on your machine as the real first test, and let me know what breaks.
+- **Orders**: seeded into the database by `seed.py`. In production this would be a
+  call into the existing Laravel order API -- only `OrderRepository` would change.
+- **Email**: mocked in the prototype (logged and stored in a `sent_emails` table).
+- **Auth**: not added yet -- planned before exposing `/admin/*` beyond localhost.
+- **LLM**: Groq (`GROQ_MODEL` in `.env`, default `llama-3.3-70b-versatile`; check
+  [console.groq.com](https://console.groq.com) for the current model catalog). It is used
+  only to read the customer's intent and phrase the reply; all business decisions are
+  deterministic Python.
