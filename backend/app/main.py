@@ -1,17 +1,27 @@
+import logging
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from app.config import get_settings
 from app.routers import orders
 from app.seed import seed
 from app.services.order_service import OrderNotFoundError
+from app.logging_config import setup_logging
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    settings = get_settings()
+    setup_logging(settings.log_level)
+    logger.info("Starting app (env=%s)", settings.app_env)
     seed()
     yield
+    logger.info("Shutting down")
 
 
 app = FastAPI(title="Smart E-commerce support agent", lifespan=lifespan)
