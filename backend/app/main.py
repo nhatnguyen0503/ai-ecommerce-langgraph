@@ -1,15 +1,14 @@
 import logging
-
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
+from app.logging_config import setup_logging
 from app.routers import orders
 from app.seed import seed
 from app.services.order_service import OrderNotFoundError
-from app.logging_config import setup_logging
 
 logger = logging.getLogger(__name__)
 
