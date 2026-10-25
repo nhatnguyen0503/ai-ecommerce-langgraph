@@ -10,7 +10,7 @@ class Order(Base):
 
     id: Mapped[str] = mapped_column(primary_key=True)
     customer_name: Mapped[str]
-    customer_email: Mapped[str]
+    customer_email: Mapped[str] = mapped_column(index=True)
     items: Mapped[list[dict]] = mapped_column(JSON)  # [{"name": ..., "qty": ..., "price": ...}]
     total_amount: Mapped[float]
     currency: Mapped[str | None] = mapped_column(default="EUR")
