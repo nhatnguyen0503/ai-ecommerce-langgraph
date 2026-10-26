@@ -7,6 +7,7 @@ from app.repositories.order_repository import OrderRepository
 
 logger = logging.getLogger(__name__)
 
+
 class OrderNotFoundError(Exception):
     """Raised when no order matches the given ID."""
 
@@ -26,7 +27,7 @@ class OrderService:
 
     def get_order(self, order_id: str) -> Order:
         normalized_id = order_id.upper().strip()
-        logger.info("Looking up order %s", normalized_id)
+        logger.debug("Debug %s", normalized_id)
         order = self.repo.get_by_id(normalized_id)
         if order is None:
             logger.info("Order not found: %s", normalized_id)

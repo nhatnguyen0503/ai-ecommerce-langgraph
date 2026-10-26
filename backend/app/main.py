@@ -9,6 +9,7 @@ from app.logging_config import setup_logging
 from app.routers import orders
 from app.seed import seed
 from app.services.order_service import OrderNotFoundError
+from app.request_context import request_id_var, resolve_request_id
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,17 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Smart E-commerce support agent", lifespan=lifespan)
 app.include_router(orders.router)
 
+
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    request_id = resolve_request_id(request.headers.get("X-Request-ID"))
+    token = request_id_var.set(request_id)
+    try:
+        response = await call_next(request)
+    finally:
+        request_id_var.reset(token)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 @app.get("/health")
 def health():

@@ -6,15 +6,19 @@ def setup_logging(level: str = "INFO") -> None:
     logging.config.dictConfig({
         "version": 1,
         "disable_existing_loggers": False,
+        "filters": {
+            "request_id": {"()": "app.request_context.RequestIdFilter"},
+        },
         "formatters": {
             "default": {
-                "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                 "format": "%(asctime)s - %(name)s - %(levelname)s - [%(request_id)s] - %(message)s",
             },
         },
         "handlers": {
             "console": {
                 "class": "logging.StreamHandler",
                 "formatter": "default",
+                "filters": ["request_id"],
             },
         },
         "root": {
