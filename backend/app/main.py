@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 
 from app.config import get_settings
+from app.database import SessionLocal
 from app.errors import error_response, register_exception_handlers
 from app.logging_config import setup_logging
 from app.request_context import request_id_var, resolve_request_id
@@ -18,7 +19,8 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     setup_logging(settings.log_level)
     logger.info("Starting app (env=%s)", settings.app_env)
-    seed()
+    with SessionLocal() as db:
+        seed(db)
     yield
     logger.info("Shutting down")
 

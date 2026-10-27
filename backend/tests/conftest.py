@@ -15,14 +15,9 @@ NOW = datetime(2026, 10, 10, 12, 0, 0)
 
 
 @pytest.fixture
-def db():
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-
-    Base.metadata.create_all(engine)
-    session = sessionmaker(bind=engine)()
-    session.add(
+def db(empty_db):
+    """The same database, with one delivered order (FI-10234)."""
+    empty_db.add(
         Order(
             id="FI-10234",
             customer_name="Aino",
@@ -34,9 +29,9 @@ def db():
             delivered_date=NOW - timedelta(days=3),
         )
     )
-    session.commit()
-    yield session
-    session.close()
+    empty_db.commit()
+    return empty_db
+
 
 @pytest.fixture()
 def client(db):
@@ -44,3 +39,13 @@ def client(db):
     yield TestClient(app)
     app.dependency_overrides.clear()
 
+
+@pytest.fixture
+def empty_db():
+    engine = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
+    Base.metadata.create_all(engine)
+    session = sessionmaker(bind=engine)()
+    yield session
+    session.close()
