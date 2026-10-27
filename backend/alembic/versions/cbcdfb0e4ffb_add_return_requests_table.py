@@ -27,7 +27,7 @@ def upgrade() -> None:
     sa.Column('reason', sa.String(), nullable=False),
     sa.Column('amount_eur', sa.Numeric(precision=10, scale=2), nullable=False),
     sa.Column('status', sa.String(), server_default='pending', nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
     sa.ForeignKeyConstraint(['order_id'], ['orders.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
