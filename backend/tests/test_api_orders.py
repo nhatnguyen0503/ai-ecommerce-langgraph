@@ -12,7 +12,10 @@ def test_get_order_accepts_lowercase_id(client):
 def test_get_order_missing_returns_404(client):
     response = client.get("/orders/xxx")
     assert response.status_code == 404
-    assert response.json() == {"detail": "Order XXX not found"}
+    body = response.json()
+    assert body["detail"] == "Order XXX not found"
+    assert body["request_id"]
+
 
 def test_return_eligibility_shape(client):
     response = client.get("/orders/FI-10234/return-eligibility")

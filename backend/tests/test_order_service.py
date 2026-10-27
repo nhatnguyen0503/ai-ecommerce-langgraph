@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 
 import pytest
@@ -6,6 +7,7 @@ from app.models import Order
 from app.services.order_service import OrderService, OrderNotFoundError
 
 NOW = datetime(2026, 10, 10, 12, 0, 0)
+
 
 class FakeOrderRepository:
     def __init__(self, orders: list[Order]) -> None:
@@ -17,6 +19,7 @@ class FakeOrderRepository:
     def list_all(self) -> list[Order]:
         return list(self.orders.values())
 
+
 def make_order(order_id: str, delivered_days_ago: int | None) -> Order:
     delivered = None if delivered_days_ago is None else NOW - timedelta(days=delivered_days_ago)
     return Order(id=order_id, status="delivered" if delivered else "in_transit", delivered_date=delivered)
@@ -27,13 +30,16 @@ def service() -> OrderService:
     repo = FakeOrderRepository([make_order("FI-1", 3), make_order("FI-2", 20)])
     return OrderService(repo, window_days=14)
 
+
 def test_get_order_normalizes_id(service):
     order = service.get_order("  fi-1 ")
     assert order.id == "FI-1"
 
+
 def test_get_order_missing_raises(service):
     with pytest.raises(OrderNotFoundError):
         service.get_order("FI-404")
+
 
 def test_check_return_within_window(service):
     result = service.get_return_eligibility("FI-1", now=NOW)
@@ -43,3 +49,16 @@ def test_check_return_within_window(service):
 def test_check_return_past_window(service):
     result = service.get_return_eligibility("FI-2", now=NOW)
     assert result["eligible"] is False
+
+
+def test_get_order_missing_is_logged(service, caplog):
+    with caplog.at_level(logging.INFO):
+        with pytest.raises(OrderNotFoundError):
+            service.get_order("FI-404")
+    assert any("Order not found" in record.message for record in caplog.records)
+
+
+def test_return_eligibility_is_logged(service, caplog):
+    with caplog.at_level(logging.INFO):
+        service.get_return_eligibility("FI-2", now=NOW)
+    assert "eligible=False" in caplog.text

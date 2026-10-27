@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 
     # Environment
     app_env: Literal["dev", "test", "prod"] = "dev"
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
 
     # LLM (Groq -- https://console.groq.com for keys + the current model catalog)
     groq_api_key: SecretStr = ""
