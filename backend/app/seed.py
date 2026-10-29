@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
-from app.database import SessionLocal
+from sqlalchemy.orm import Session
+
 from app.models import Order
 
 
@@ -38,13 +39,9 @@ SAMPLE_ORDERS = [
 ]
 
 
-def seed():
-    db = SessionLocal()
-    try:
-        if db.query(Order).count() > 0:
-            return
-        for data in SAMPLE_ORDERS:
-            db.add(Order(**data))
-        db.commit()
-    finally:
-        db.close()
+def seed(db: Session) -> None:
+    if db.query(Order).count() > 0:
+        return
+    for data in SAMPLE_ORDERS:
+        db.add(Order(**data))
+    db.commit()

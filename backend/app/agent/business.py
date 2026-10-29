@@ -1,9 +1,10 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from app.config import get_settings
 
 settings = get_settings()
+ApprovalStatus = Literal["auto_approved", "pending"]
 
 
 def check_return_eligibility(
@@ -31,3 +32,12 @@ def check_return_eligibility(
         reason = (f"Delivered {days_since} day(s) ago, past the {window}-day return window "
                   f"by {days_since - window} day(s).")
     return {"eligible": eligible, "days_since_delivery": days_since, "reason": reason}
+
+
+def decide_refund_approval(amount_eur: float, ceiling_eur: float) -> ApprovalStatus:
+    """Refunds up to the ceiling are auto_approved; larger ones need an admin."""
+    if amount_eur <= 0:
+        raise ValueError(f"Refund amount must be positive, got {amount_eur}")
+    if amount_eur <= ceiling_eur:
+        return "auto_approved"
+    return "pending"

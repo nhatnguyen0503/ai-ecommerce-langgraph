@@ -11,3 +11,5 @@ frontend/dist/
 frontend/.env
 .DS_Store
 .idea/
+.coverage
+htmlcov/
