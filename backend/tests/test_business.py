@@ -1,8 +1,10 @@
+import pytest
 from datetime import datetime, timedelta
 
-from app.agent.business import check_return_eligibility
+from app.agent.business import check_return_eligibility, decide_refund_approval
 
 NOW = datetime(2026, 10, 10, 12, 0, 0)
+CEILING = 100.0
 
 
 def make_order(delivery_days_ago):
@@ -42,3 +44,30 @@ def test_not_delivered_is_not_eligible():
 def test_custom_window_changes_outcome():
     assert check_return_eligibility(make_order(18), now=NOW, window_days=14)["eligible"] is False
     assert check_return_eligibility(make_order(21), now=NOW, window_days=21)["eligible"] is True
+
+
+# Test decide refund approval
+def test_small_refund_is_auto_approval():
+    assert decide_refund_approval(29.90, CEILING) == "auto_approved"
+
+
+def test_refund_exactly_at_ceiling_is_auto_approved():
+    assert decide_refund_approval(100, CEILING) == "auto_approved"
+
+
+def test_refund_just_over_ceiling_needs_admin():
+    assert decide_refund_approval(100.01, CEILING) == "pending"
+
+
+def test_large_refund_needs_admin():
+    assert decide_refund_approval(219.00, CEILING) == "pending"
+
+
+def test_non_positive_refund_is_rejected():
+    with pytest.raises(ValueError):
+        decide_refund_approval(0, CEILING)
+    with pytest.raises(ValueError):
+        decide_refund_approval(-219, CEILING)
+
+def test_ceiling_is_configurable():
+    assert decide_refund_approval(150,200) == "auto_approved"
