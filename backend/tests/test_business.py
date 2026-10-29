@@ -1,5 +1,6 @@
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 
 from app.agent.business import check_return_eligibility, decide_refund_approval
 
@@ -69,5 +70,6 @@ def test_non_positive_refund_is_rejected():
     with pytest.raises(ValueError):
         decide_refund_approval(-219, CEILING)
 
+
 def test_ceiling_is_configurable():
-    assert decide_refund_approval(150,200) == "auto_approved"
+    assert decide_refund_approval(150, ceiling_eur=200) == "auto_approved"

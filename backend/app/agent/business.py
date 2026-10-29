@@ -34,10 +34,10 @@ def check_return_eligibility(
     return {"eligible": eligible, "days_since_delivery": days_since, "reason": reason}
 
 
-def decide_refund_approval(amount_eur: float, celling_eur: float) -> ApprovalStatus:
+def decide_refund_approval(amount_eur: float, ceiling_eur: float) -> ApprovalStatus:
     """Refunds up to the ceiling are auto_approved; larger ones need an admin."""
     if amount_eur <= 0:
         raise ValueError(f"Refund amount must be positive, got {amount_eur}")
-    if amount_eur <= celling_eur:
+    if amount_eur <= ceiling_eur:
         return "auto_approved"
     return "pending"
