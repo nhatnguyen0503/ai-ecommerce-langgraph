@@ -57,31 +57,31 @@ export interface ChatResponse {
 export type ApprovalDecision = "approved" | "rejected";
 
 export interface PendingApproval {
-  id: string;
-  session_id: string;
-  order_id: string;
-  customer_email: string;
-  refund_amount: number;
-  reason: string;
-  status: string;
-  created_at: string;
-  decided_at: string | null;
-  decided_by: string | null;
-  admin_note: string | null;
+    id: string;
+    session_id: string;
+    order_id: string;
+    customer_email: string;
+    refund_amount: number;
+    reason: string;
+    status: string;
+    created_at: string;
+    decided_at: string | null;
+    decided_by: string | null;
+    admin_note: string | null;
 }
 
 export interface DecisionResult {
-  approval_id: string;
-  decision: ApprovalDecision;
-  session_id: string;
-  final_customer_message: string | null;
+    approval_id: string;
+    decision: ApprovalDecision;
+    session_id: string;
+    final_customer_message: string | null;
 }
 
 export interface SentEmail {
-  id: string;
-  to_email: string;
-  subject: string;
-  body: string;
-  order_id: string | null;
-  created_at: string;
+    id: string;
+    to_email: string;
+    subject: string;
+    body: string;
+    order_id: string | null;
+    created_at: string;
 }

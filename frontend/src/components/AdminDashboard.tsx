@@ -1,6 +1,13 @@
-import {useCallback, useEffect, useState} from "react";
-import {api, errorText} from "../api";
-import type {ApprovalDecision, PendingApproval, SentEmail} from "../types/api";
+import type { ApprovalDecision } from "../types/api";
+import {
+    useDecideApprovalMutation,
+    useListPendingApprovalsQuery,
+    useListSentEmailsQuery,
+} from "../services/agentApi";
+import { queryErrorText } from "../services/queryError";
+import OrdersTable from "./OrdersTable"
+
+const POLL_MS = 5000;
 
 function formatDate(iso: string | null): string {
     if (!iso) return "";
@@ -8,37 +15,27 @@ function formatDate(iso: string | null): string {
 }
 
 export default function AdminDashboard() {
-    const [approvals, setApprovals] = useState<PendingApproval[]>([]);
-    const [emails, setEmails] = useState<SentEmail[]>([]);
-    const [busyId, setBusyId] = useState<string | null>(null);
-    const [error, setError] = useState("");
+    const { data: approvals = [], error: approvalsError } = useListPendingApprovalsQuery(
+        undefined,
+        { pollingInterval: POLL_MS },
+    );
+    const { data: emails = [], error: emailsError } = useListSentEmailsQuery(undefined, {
+        pollingInterval: POLL_MS,
+    });
+    const [decideApproval, { isLoading: deciding, originalArgs, error: decideError }] =
+        useDecideApprovalMutation();
 
-    const refresh = useCallback(async () => {
-        try {
-            const [allApprovals, allEmails] = await Promise.all([api.listPendingApprovals(), api.listSentEmails()]);
-            setApprovals(allApprovals);
-            setEmails(allEmails);
-        } catch (err) {
-            setError(errorText(err, "Failed to load admin data."));
-        }
-    }, []);
-
-    useEffect(() => {
-        refresh();
-        const id = setInterval(refresh, 5000);
-        return () => clearInterval(id);
-    }, [refresh]);
+    const busyId = deciding ? originalArgs?.approvalId : null;
+    const error = queryErrorText(
+        approvalsError ?? emailsError ?? decideError,
+        "Failed to load admin data.",
+    );
 
     async function handleDecision(id: string, decision: ApprovalDecision) {
-        setBusyId(id);
-        setError("");
         try {
-            await api.decideApproval(id, decision);
-            await refresh();
-        } catch (err) {
-            setError(errorText(err, "Failed to record decision."));
-        } finally {
-            setBusyId(null);
+            await decideApproval({ approvalId: id, decision }).unwrap();
+        } catch {
+            /* error is already exposed as decideError */
         }
     }
 
@@ -52,6 +49,7 @@ export default function AdminDashboard() {
                     {error}
                 </div>
             )}
+            <OrdersTable/>
 
             <div className="card">
                 <h2 className="section-title" style={{marginTop: 0}}>

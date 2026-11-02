@@ -1,100 +1,70 @@
 import {useEffect, useRef, useState, type FormEvent} from "react";
-import {api, errorText} from "../api";
-import type {ChatMessage} from "../types/api";
-
-function makeSessionId() {
-    return `sess_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
-}
-
-function getOrCreateSessionId() {
-    try {
-        const existing = window.localStorage.getItem("support_session_id");
-        if (existing) return existing;
-        const fresh = makeSessionId();
-        window.localStorage.setItem("support_session_id", fresh);
-        return fresh;
-    } catch {
-        // localStorage unavailable (private mode etc.) -- fall back to an in-memory id
-        return makeSessionId();
-    }
-}
+import type {FetchBaseQueryError} from "@reduxjs/toolkit/query";
+import {useGetMessagesQuery, useSendMessageMutation} from "../services/agentApi";
+import {queryErrorText} from "../services/queryError";
+import {useAppDispatch, useAppSelector} from "../hooks";
+import {
+    awaitingApprovalChanged,
+    messagesLoaded,
+    sendFailed,
+    sendFinished,
+    sendStarted,
+    userMessageAdded,
+} from "../features/chat/chatSlice";
 
 export default function ChatWidget() {
-    const [sessionId] = useState(getOrCreateSessionId);
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+    const dispatch = useAppDispatch();
+    const {sessionId, messages, sending, awaitingApproval, error} = useAppSelector(
+        (state) => state.chat,
+    );
     const [input, setInput] = useState("");
-    const [sending, setSending] = useState(false);
-    const [awaitingApproval, setAwaitingApproval] = useState(false);
-    const [error, setError] = useState("");
     const bottomRef = useRef<HTMLDivElement>(null);
-    const pollRef = useRef<number | null>(null);
 
-    function stopPolling() {
-        if (pollRef.current !== null) {
-            window.clearInterval(pollRef.current);
-            pollRef.current = null;
-        }
-    }
-
-    useEffect(() => {
-        api
-            .getMessages(sessionId)
-            .then((msgs) => setMessages(msgs))
-            .catch(() => {
-            });
-    }, [sessionId]);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({behavior: "smooth"});
     }, [messages]);
 
-    // While a refund is escalated to an admin, poll for the follow-up message
-    // that appears once the graph resumes after a decision.
+    // One query does both jobs: initial load, and polling while a refund awaits approval.
+    const {data: serverMessages} = useGetMessagesQuery(sessionId, {
+        pollingInterval: awaitingApproval ? 5000 : 0,   // 0 = no polling
+    });
+    const [sendMessage] = useSendMessageMutation();
+
+// Sync server history into the slice when the server has more than we show.
     useEffect(() => {
-        if (!awaitingApproval) {
-            stopPolling();
-            return;
+        if (!serverMessages) return;
+        if (serverMessages.length > messages.length) {
+            dispatch(messagesLoaded(serverMessages));
+            dispatch(awaitingApprovalChanged(false));
         }
-        pollRef.current = window.setInterval(async () => {
-            try {
-                const msgs = await api.getMessages(sessionId);
-                if (msgs.length > messages.length) {
-                    setMessages(msgs);
-                    setAwaitingApproval(false);
-                }
-            } catch {
-                /* ignore transient errors while polling */
-            }
-        }, 4000);
-        return () => stopPolling();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [awaitingApproval, messages.length, sessionId]);
+    }, [serverMessages, messages.length, dispatch]);
 
     async function handleSend(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
         const text = input.trim();
         if (!text || sending) return;
 
-        setMessages((prev) => [...prev, {role: "user", content: text}]);
+        dispatch(userMessageAdded(text));
         setInput("");
-        setSending(true);
-        setError("");
+        dispatch(sendStarted());
 
         try {
-            const res = await api.sendMessage(sessionId, text);
+            const res = await sendMessage({sessionId, message: text}).unwrap();
             // The backend returns the authoritative history for the messages that
             // made it into a checkpoint. When the graph paused for approval, its
             // own "respond" node never ran, so `res.reply` is a synthetic
             // "submitted for review" notice that only exists client-side here.
             const base = res.messages && res.messages.length ? res.messages : messages;
-            setMessages(
+            dispatch(messagesLoaded(
                 res.status === "awaiting_approval" ? [...base, {role: "assistant", content: res.reply}] : base
-            );
-            setAwaitingApproval(res.status === "awaiting_approval");
+            ));
+            dispatch(awaitingApprovalChanged(res.status === "awaiting_approval"));
         } catch (err) {
-            setError(errorText(err, "Something went wrong talking to the support agent."));
+            dispatch(sendFailed(queryErrorText(err as FetchBaseQueryError, "Something went wrong talking to the support agent.")));
         } finally {
-            setSending(false);
+            dispatch(sendFinished());
         }
     }
 

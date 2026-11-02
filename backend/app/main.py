@@ -2,6 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import SessionLocal
@@ -44,6 +45,15 @@ async def add_request_id(request: Request, call_next):
         request_id_var.reset(token)
     response.headers["X-Request-ID"] = request_id
     return response
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[get_settings().frontend_origin],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
+)
 
 
 @app.get("/health")

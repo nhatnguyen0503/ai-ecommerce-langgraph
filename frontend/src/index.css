@@ -259,3 +259,19 @@ body {
   white-space: pre-wrap;
   margin-top: 4px;
 }
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.orders-table th,
+.orders-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.orders-table th {
+  font-weight: 600;
+  color: #6b7280;
+}
