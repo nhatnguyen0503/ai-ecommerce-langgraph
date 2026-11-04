@@ -34,3 +34,24 @@ def test_unexpected_error_returns_generic_500(client):
     assert response.status_code == 500
     assert response.json() == {"detail": "Internal server error", "request_id": "t-500"}
     assert "secret" not in response.text
+
+
+ORIGIN = "http://localhost:5173"
+
+
+def test_cors_preflight_allows_frontend_origin(client):
+    response = client.options(
+        "/orders", headers={"Origin": ORIGIN, "Access-Control-Request-Method": "GET"},
+    )
+    assert response.status_code == 200
+    assert response.headers["Access-Control-Allow-Origin"] == ORIGIN
+
+
+def test_cors_exposes_request_id_header(client):
+    response = client.get("/health", headers={"Origin": ORIGIN})
+    assert "x-request-id" in response.headers["access-control-expose-headers"].lower()
+
+
+def test_cors_rejects_unknown_origins(client):
+    response = client.get("/health", headers={"Origin": "http://evil.com"})
+    assert "access-control-allow-origin" not in response.headers
