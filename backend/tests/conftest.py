@@ -1,3 +1,8 @@
+import os
+
+# Tests must not depend on the developer's .env; set a fixed dummy secret first.
+os.environ.setdefault("JWT_SECRET_KEY", "test-secret-" + "x" * 32)
+
 from datetime import datetime, timedelta
 
 from fastapi.testclient import TestClient
