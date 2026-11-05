@@ -9,7 +9,7 @@ from app.database import SessionLocal
 from app.errors import error_response, register_exception_handlers
 from app.logging_config import setup_logging
 from app.request_context import request_id_var, resolve_request_id
-from app.routers import orders
+from app.routers import auth, orders
 from app.seed import seed
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Smart E-commerce support agent", lifespan=lifespan)
 app.include_router(orders.router)
+app.include_router(auth.router)
 register_exception_handlers(app)
 
 
