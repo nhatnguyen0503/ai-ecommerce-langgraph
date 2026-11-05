@@ -1,8 +1,16 @@
+import logging
 from datetime import datetime, timedelta
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Order
+from app.config import get_settings
+from app.models import Order, User
+from app.security import hash_password
+
+logger = logging.getLogger(__name__)
+
+ADMIN_EMAIL = "admin@example.com"
 
 
 def days_ago(n: int) -> datetime:
@@ -38,8 +46,30 @@ SAMPLE_ORDERS = [
          order_date=days_ago(45), delivered_date=days_ago(42)),
 ]
 
+def seed_users(db: Session, password: str, app_env: str) -> int:
+    """Create one admin + one customer per sample order email. Returns how many were created."""
+    if app_env == "prod" or not password:
+        logger.info("Skipping demo users (env=%s)", app_env)
+        return 0
+
+    wanted = {ADMIN_EMAIL: "admin"}
+    wanted.update({o["customer_email"]: "customer" for o in SAMPLE_ORDERS})
+
+    existing = set(db.scalars(select(User.email)))
+    created = 0
+    for email, role in wanted.items():
+        if email in existing:
+            continue
+        db.add(User(email=email, hashed_password=hash_password(password), role=role))
+        created += 1
+    db.commit()
+    logger.info("Seeded %d demo users", created)   # count only — no emails in logs
+    return created
+
 
 def seed(db: Session) -> None:
+    settings = get_settings()
+    seed_users(db, settings.seed_demo_password.get_secret_value(), settings.app_env)
     if db.query(Order).count() > 0:
         return
     for data in SAMPLE_ORDERS:

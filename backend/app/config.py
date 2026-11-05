@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     jwt_secret_key: SecretStr = SecretStr("")
     jwt_algorithm: Literal["HS256"] = "HS256"
     access_token_expire_minutes: int = 30
+    # Dev-only demo accounts (skipped when empty or when APP_ENV=prod)
+    seed_demo_password: SecretStr = SecretStr("")
 
     @model_validator(mode="after")
     def _require_key_in_prod(self):
