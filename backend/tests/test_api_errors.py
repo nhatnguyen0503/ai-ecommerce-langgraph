@@ -12,14 +12,14 @@ def test_valid_client_request_id_is_echoed(client):
     assert response.headers["X-Request-ID"] == "my-test-123"
 
 
-def test_error_body_contains_request_id(client):
-    response = client.get("/orders/xxx", headers={"X-Request-ID": "t-404"})
+def test_error_body_contains_request_id(client, admin_headers):
+    response = client.get("/orders/xxx", headers={**admin_headers, "X-Request-ID": "t-404"})
     assert response.status_code == 404
     assert response.json()["request_id"] == "t-404"
 
 
 def test_unknown_route_uses_same_error_shape(client):
-    response = client.get("/khong-co")
+    response = client.get("/unknow")
     assert response.status_code == 404
     assert set(response.json()) == {"detail", "request_id"}
 
@@ -53,5 +53,5 @@ def test_cors_exposes_request_id_header(client):
 
 
 def test_cors_rejects_unknown_origins(client):
-    response = client.get("/health", headers={"Origin": "http://evil.com"})
+    response = client.get("/health", headers={"Origin": "https://test.fi"})
     assert "access-control-allow-origin" not in response.headers

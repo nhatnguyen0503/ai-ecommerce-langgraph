@@ -25,6 +25,7 @@ class Order(Base):
         DateTime(timezone=True),
         server_default=func.now(),
     )
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)
 
 
 class ReturnRequest(Base):

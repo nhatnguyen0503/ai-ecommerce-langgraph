@@ -72,6 +72,7 @@ def seed(db: Session) -> None:
     seed_users(db, settings.seed_demo_password.get_secret_value(), settings.app_env)
     if db.query(Order).count() > 0:
         return
+    user_ids = {u.email: u.id for u in db.scalars(select(User))}
     for data in SAMPLE_ORDERS:
-        db.add(Order(**data))
+        db.add(Order(**data, user_id=user_ids.get(data["customer_email"])))
     db.commit()

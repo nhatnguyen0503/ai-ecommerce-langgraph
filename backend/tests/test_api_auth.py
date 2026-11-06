@@ -83,10 +83,9 @@ def test_me_without_token_is_401(client):
 
 @pytest.mark.parametrize("token", [
     "not-a-jwt",
-    create_access_token(subject="abc", role="admin"), # sub is not an int
-    create_access_token(subject="999999", role="admin"), # user does not exist
+    create_access_token(subject="abc", role="admin"),  # sub is not an int
+    create_access_token(subject="999999", role="admin"),  # user does not exist
 ])
-
 def test_me_with_bad_token_is_401(client, user, token):
     response = client.get("/auth/me", headers=_bearer(token))
     assert response.status_code == 401
@@ -104,10 +103,12 @@ def test_me_response_never_contains_password_hash(client, user):
     token = create_access_token(subject=str(user.id), role=user.role)
     assert "hashed_password" not in client.get("/auth/me", headers=_bearer(token)).json()
 
+
 def test_require_admin_reject_customer(user):
     with pytest.raises(HTTPException) as exc_info:
         require_admin(user)
     assert exc_info.value.status_code == 403
+
 
 def test_require_admin_allows_admin(user):
     user.role = "admin"

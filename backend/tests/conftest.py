@@ -13,8 +13,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db
-from app.models import Order
+from app.models import Order, User
 from app.main import app
+from app.security import create_access_token
 
 NOW = datetime(2026, 10, 10, 12, 0, 0)
 
@@ -54,3 +55,50 @@ def empty_db():
     session = sessionmaker(bind=engine)()
     yield session
     session.close()
+
+
+def _make_user(db, email: str, role: str) -> User:
+    user = User(email=email, hashed_password="not-used-in-api-tests", role=role)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def _headers(user: User) -> dict[str, str]:
+    token = create_access_token(subject=str(user.id), role=user.role)
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def admin_user(db) -> User:
+    return _make_user(db, "admin@test.fi", "admin")
+
+
+@pytest.fixture
+def owner(db) -> User:
+    """Customer who owns FI-10234."""
+    user = _make_user(db, "owner@test.fi", "customer")
+    db.get(Order, "FI-10234").user_id = user.id
+    db.commit()
+    return user
+
+
+@pytest.fixture
+def other_customer(db) -> User:
+    return _make_user(db, "other@test.fi", "customer")
+
+
+@pytest.fixture
+def admin_headers(admin_user) -> dict[str, str]:
+    return _headers(admin_user)
+
+
+@pytest.fixture
+def owner_headers(owner) -> dict[str, str]:
+    return _headers(owner)
+
+
+@pytest.fixture
+def other_headers(other_customer) -> dict[str, str]:
+    return _headers(other_customer)
