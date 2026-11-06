@@ -31,10 +31,20 @@ class Settings(BaseSettings):
     # CORS
     frontend_origin: str = "http://localhost:5173"
 
+    # Auth (JWT)
+    jwt_secret_key: SecretStr = SecretStr("")
+    jwt_algorithm: Literal["HS256"] = "HS256"
+    access_token_expire_minutes: int = 30
+    # Dev-only demo accounts (skipped when empty or when APP_ENV=prod)
+    seed_demo_password: SecretStr = SecretStr("")
+
     @model_validator(mode="after")
     def _require_key_in_prod(self):
         if self.app_env == "prod" and not self.groq_api_key:
-            raise ValueError("GROQ_API_KEY is required when APP_ENV=prod. Set it as an environment variable or in backend/.env.")
+            raise ValueError(
+                "GROQ_API_KEY is required when APP_ENV=prod. Set it as an environment variable or in backend/.env.")
+        if self.app_env == "prod" and len(self.jwt_secret_key.get_secret_value()) < 32:
+            raise ValueError("JWT_SECRET_KEY must be at least 32 characters when APP_ENV=prod.")
         return self
 
 

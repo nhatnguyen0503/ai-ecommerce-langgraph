@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 
 from app.agent.business import check_return_eligibility
-from app.models import Order
+from app.models import Order, User
 from app.repositories.order_repository import OrderRepository
 
 logger = logging.getLogger(__name__)
@@ -34,8 +34,20 @@ class OrderService:
             raise OrderNotFoundError(normalized_id)
         return order
 
-    def get_return_eligibility(self, order_id: str, now: datetime | None = None) -> dict:
+    def get_order_for(self, order_id: str, viewer: User) -> Order:
+        """Like get_order, but customers may only see their own orders.
+
+        Someone else's order raises the SAME OrderNotFoundError as a missing one,
+        so order ids cannot be probed.
+        """
         order = self.get_order(order_id)
+        if viewer.role != "admin" and order.user_id != viewer.id:
+            logger.info("Order %s hidden from user_id=%s", order.id, viewer.id)
+            raise OrderNotFoundError(order.id)
+        return order
+
+    def get_return_eligibility(self, order_id: str, now: datetime | None = None, viewer: User | None = None) -> dict:
+        order = self.get_order_for(order_id, viewer) if viewer else self.get_order(order_id)
         result = check_return_eligibility(
             {
                 "id": order.id,

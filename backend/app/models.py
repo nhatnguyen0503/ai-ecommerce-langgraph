@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Numeric, func
+from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, Numeric, func, true
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -25,6 +25,7 @@ class Order(Base):
         DateTime(timezone=True),
         server_default=func.now(),
     )
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)
 
 
 class ReturnRequest(Base):
@@ -38,4 +39,21 @@ class ReturnRequest(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
+    )
+
+
+class User(Base):
+    __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint("role IN ('admin', 'customer')", name="ck_users_role"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(unique=True, index=True)
+    hashed_password: Mapped[str]
+    role: Mapped[str] = mapped_column(server_default="customer")
+    is_active: Mapped[bool] = mapped_column(server_default=true())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.CURRENT_TIMESTAMP(),
     )

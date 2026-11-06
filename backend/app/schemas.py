@@ -2,10 +2,12 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+
 class OrderItem(BaseModel):
     name: str
     qty: int
     price: float
+
 
 class OrderOut(BaseModel):
     id: str
@@ -21,9 +23,20 @@ class OrderOut(BaseModel):
 
     model_config = {"from_attributes": True}  # allows Pydantic to read from SQLAlchemy model attributes
 
+
 class ReturnEligibilityOut(BaseModel):
     eligible: bool
     days_since_delivery: int | None = None
     reason: str
 
 
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+class UserOut(BaseModel):
+    id: int
+    email: str
+    role: str
+
+    model_config = {"from_attributes": True}

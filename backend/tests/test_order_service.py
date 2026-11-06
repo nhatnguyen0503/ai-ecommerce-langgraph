@@ -3,10 +3,13 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from app.models import Order
+from app.models import Order, User
 from app.services.order_service import OrderService, OrderNotFoundError
 
 NOW = datetime(2026, 10, 10, 12, 0, 0)
+ADMIN = User(id=1, email="admin@example.fi", role="admin")
+OWNER = User(id=2, email="aino@example.fi", role="customer")
+STRANGER = User(id=3, email="mikko@example.fi", role="customer")
 
 
 class FakeOrderRepository:
@@ -20,14 +23,19 @@ class FakeOrderRepository:
         return list(self.orders.values())
 
 
-def make_order(order_id: str, delivered_days_ago: int | None) -> Order:
+def make_order(order_id: str, delivered_days_ago: int | None, user_id: int | None = None) -> Order:
     delivered = None if delivered_days_ago is None else NOW - timedelta(days=delivered_days_ago)
-    return Order(id=order_id, status="delivered" if delivered else "in_transit", delivered_date=delivered)
+    return Order(
+        id=order_id,
+        status="delivered" if delivered else "in_transit",
+        delivered_date=delivered,
+        user_id=user_id,
+    )
 
 
 @pytest.fixture
 def service() -> OrderService:
-    repo = FakeOrderRepository([make_order("FI-1", 3), make_order("FI-2", 20)])
+    repo = FakeOrderRepository([make_order("FI-1", 3, user_id=OWNER.id), make_order("FI-2", 20)])
     return OrderService(repo, window_days=14)
 
 
@@ -62,3 +70,32 @@ def test_return_eligibility_is_logged(service, caplog):
     with caplog.at_level(logging.INFO):
         service.get_return_eligibility("FI-2", now=NOW)
     assert "eligible=False" in caplog.text
+
+
+def test_owner_can_see_own_order(service):
+    assert service.get_order_for("FI-1", OWNER).id == "FI-1"
+
+
+def test_admin_can_see_any_order(service):
+    assert service.get_order_for("FI-1", ADMIN).id == "FI-1"
+
+
+def test_stranger_gets_not_found_not_forbidden(service):
+    with pytest.raises(OrderNotFoundError):
+        service.get_order_for("FI-1", STRANGER)
+
+
+def test_same_email_but_different_account_is_not_owner(service):
+    impostor = User(id=99, email="aino@example.fi", role="customer")  # same email, other id
+    with pytest.raises(OrderNotFoundError):
+        service.get_order_for("FI-1", impostor)
+
+
+def test_guest_order_is_hidden_from_customers(service):
+    with pytest.raises(OrderNotFoundError):
+        service.get_order_for("FI-2", STRANGER)  # FI-2 has no user_id
+
+
+def test_eligibility_with_viewer_checks_ownership(service):
+    with pytest.raises(OrderNotFoundError):
+        service.get_return_eligibility("FI-1", now=NOW, viewer=STRANGER)
