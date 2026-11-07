@@ -9,7 +9,11 @@
   --success: #1f8a4c;
   --danger: #c23636;
   --warning: #b8860b;
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family:
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 * {
