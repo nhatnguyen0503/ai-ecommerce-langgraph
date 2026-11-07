@@ -1,4 +1,4 @@
-import { useListOrdersQuery } from "../services/ordersApi";
+import { useListOrdersQuery } from "../services/backendApi";
 import { queryErrorText } from "../services/queryError";
 
 export default function OrdersTable() {

@@ -1,16 +1,28 @@
 import { configureStore } from "@reduxjs/toolkit";
 import chatReducer from "./features/chat/chatSlice";
-import { ordersApi } from "./services/ordersApi";
+import authReducer, { saveToken } from "./features/auth/authSlice";
+import { backendApi } from "./services/backendApi";
 import { agentApi } from "./services/agentApi";
 
 export const store = configureStore({
   reducer: {
+    auth: authReducer,
     chat: chatReducer,
-    [ordersApi.reducerPath]: ordersApi.reducer,
+    [backendApi.reducerPath]: backendApi.reducer,
     [agentApi.reducerPath]: agentApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(ordersApi.middleware, agentApi.middleware),
+    getDefaultMiddleware().concat(backendApi.middleware, agentApi.middleware),
+});
+
+// Persist the token whenever it changes (side effect lives outside the reducer)
+let lastToken = store.getState().auth.token;
+store.subscribe(() => {
+  const token = store.getState().auth.token;
+  if (token !== lastToken) {
+    lastToken = token;
+    saveToken(token);
+  }
 });
 
 export type RootState = ReturnType<typeof store.getState>;

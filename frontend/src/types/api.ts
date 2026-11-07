@@ -85,3 +85,14 @@ export interface SentEmail {
   order_id: string | null;
   created_at: string;
 }
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: "bearer";
+}
+
+export interface CurrentUser {
+  id: number;
+  email: string;
+  role: "customer" | "admin";
+}
