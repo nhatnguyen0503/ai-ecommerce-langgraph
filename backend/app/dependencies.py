@@ -1,8 +1,8 @@
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 from app.config import get_settings
 from app.database import get_db
@@ -12,6 +12,7 @@ from app.repositories.user_repository import UserRepository
 from app.services.auth_service import AuthService
 from app.models import User
 from app.security import InvalidTokenError, decode_access_token
+from app.rate_limit import RateLimiter
 
 
 def get_order_repository(db: Annotated[Session, Depends(get_db)]) -> OrderRepository:
@@ -72,3 +73,21 @@ def require_admin(user: CurrentUser) -> User:
 
 
 AdminUser = Annotated[User, Depends(require_admin)]
+
+# 5 login attempts per minute per (client IP, email).
+login_limiter = RateLimiter(max_attempts=5, window_seconds=60)
+
+
+def limit_login_attempts(
+        request: Request,
+        form: Annotated[OAuth2PasswordRequestForm, Depends()],
+) -> None:
+    client_ip = request.client.host if request.client else "unknown"
+    key = f"{client_ip}:{form.username.strip().lower()}"
+    retry_after = login_limiter.hit(key)
+    if retry_after is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts. Try again later.",
+            headers={"Retry-After": str(int(retry_after) + 1 )},
+        )

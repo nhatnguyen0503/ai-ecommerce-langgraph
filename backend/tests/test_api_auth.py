@@ -113,3 +113,19 @@ def test_require_admin_reject_customer(user):
 def test_require_admin_allows_admin(user):
     user.role = "admin"
     assert require_admin(user) is user
+
+
+def test_login_is_rate_limited_after_5_attempts(client, user):
+    for _ in range(5):
+        assert _login(client, "aino@example.fi", "wrong").status_code == 401
+    response = _login(client, "aino@example.fi", "wrong")
+    assert response.status_code == 429
+    assert int(response.headers["retry-after"]) > 0
+    assert response.json()["detail"] == "Too many login attempts. Try again later."
+
+
+def test_rate_limit_is_per_email(client, user):
+    for _ in range(5):
+        _login(client, "aino@example.fi", "wrong")
+    # another account from the same IP is not blocked
+    assert _login(client, "someone@example.fi", "wrong").status_code == 401
