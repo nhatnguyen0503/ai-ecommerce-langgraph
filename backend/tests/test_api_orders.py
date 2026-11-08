@@ -56,3 +56,19 @@ def test_other_customer_gets_404_same_as_missing(client, other_headers, path):
     response = client.get(path, headers=other_headers)
     assert response.status_code == 404
     assert response.json()["detail"] == "Order FI-10234 not found"
+
+
+@pytest.mark.parametrize("bad_id", [
+    "a" * 33,  # too long
+    "FI-10234'",  # quote
+    "FI 10234",  # space
+    "FI_10234",  # underscore not allowed
+])
+def test_invalid_order_id_is_422(client, admin_headers, bad_id):
+    response = client.get(f"/orders/{bad_id}", headers=admin_headers)
+    assert response.status_code == 422
+    assert set(response.json()) == {"detail", "request_id"}
+
+
+def test_unknown_but_well_formed_id_is_still_404(client, admin_headers):
+    assert client.get("/orders/FI-99999", headers=admin_headers).status_code == 404

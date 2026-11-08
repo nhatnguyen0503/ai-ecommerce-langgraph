@@ -9,6 +9,8 @@ logger = logging.getLogger(__name__)
 # Verified against when the email does not exist, so a wrong email takes about
 # as long as a wrong password (no user enumeration via response time).
 _DUMMY_HASH = hash_password("dummy-password-for-timing")
+MAX_EMAIL_LENGTH = 254  # practical maximum for an email address (RFC 5321)
+MAX_PASSWORD_LENGTH = 128  # long enough for passphrases, short enough to hash cheaply
 
 
 class InvalidCredentialsError(Exception):
@@ -21,6 +23,9 @@ class AuthService:
         self.repo = repo
 
     def authenticate(self, email: str, password: str) -> User:
+        if len(email) > MAX_EMAIL_LENGTH or len(password) > MAX_PASSWORD_LENGTH:
+            logger.info("Login rejected: input too long")
+            raise InvalidCredentialsError()
         user = self.repo.get_by_email(email.strip().lower())
         if user is None:
             # Verify a dummy hash to make the timing similar to a real user.

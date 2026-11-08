@@ -129,3 +129,14 @@ def test_rate_limit_is_per_email(client, user):
         _login(client, "aino@example.fi", "wrong")
     # another account from the same IP is not blocked
     assert _login(client, "someone@example.fi", "wrong").status_code == 401
+
+
+def test_very_long_password_is_rejected_without_hashing(client, user, monkeypatch):
+    import app.services.auth_service as auth_service
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("verify_password must not run for oversized input")
+
+    monkeypatch.setattr(auth_service, "verify_password", fail_if_called)
+    response = _login(client, "aino@example.fi", "x" * 10_000)
+    assert response.status_code == 401
