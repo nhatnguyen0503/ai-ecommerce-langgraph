@@ -26,10 +26,25 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down")
 
 
-app = FastAPI(title="Smart E-commerce support agent", lifespan=lifespan)
+def api_docs_urls(app_env: str) -> dict[str, str | None]:
+    """Swagger/ReDoc/OpenAPI are for development only."""
+    if app_env == "prod":
+        return {"docs_url": None, "redoc_url": None, "openapi_url": None}
+    return {"docs_url": "/docs", "redoc_url": "/redoc", "openapi_url": "/openapi.json"}
+
+
+app = FastAPI(title="Smart E-commerce support agent", lifespan=lifespan, **api_docs_urls(get_settings().app_env), )
 app.include_router(orders.router)
 app.include_router(auth.router)
 register_exception_handlers(app)
+
+# Sent on every response; cheap browser-side protections for an API.
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Cache-Control": "no-store",
+}
 
 
 @app.middleware("http")
@@ -45,14 +60,16 @@ async def add_request_id(request: Request, call_next):
     finally:
         request_id_var.reset(token)
     response.headers["X-Request-ID"] = request_id
+    for name, value in SECURITY_HEADERS.items():
+        response.headers[name] = value
     return response
 
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[get_settings().frontend_origin],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
     expose_headers=["X-Request-ID"],
 )
 
