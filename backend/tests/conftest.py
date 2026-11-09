@@ -16,6 +16,7 @@ from app.database import Base, get_db
 from app.models import Order, User
 from app.main import app
 from app.security import create_access_token
+from app.dependencies import login_limiter
 
 NOW = datetime(2026, 10, 10, 12, 0, 0)
 
@@ -102,3 +103,9 @@ def owner_headers(owner) -> dict[str, str]:
 @pytest.fixture
 def other_headers(other_customer) -> dict[str, str]:
     return _headers(other_customer)
+
+
+@pytest.fixture(autouse=True)
+def _reset_login_limiter():
+    login_limiter.reset()
+    yield
