@@ -49,8 +49,10 @@ export const backendApi = createApi({
       query: ({ email, password }) => ({
         url: "/auth/login",
         method: "POST",
-        // OAuth2 password flow expects a FORM, not JSON (same as Swagger's Authorize)
-        body: new URLSearchParams({ username: email, password }),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        // OAuth2 password flow expects a FORM. Send it as an encoded string so it
+        // works the same in browsers and in Node/jsdom tests.
+        body: new URLSearchParams({ username: email, password }).toString(),
       }),
       invalidatesTags: ["Me"],
     }),

@@ -23,7 +23,8 @@ interface AuthState {
   token: string | null;
 }
 
-const initialState: AuthState = { token: loadToken() };
+// A function, not a value: evaluated each time a store is created (app start or each test).
+const initialState = (): AuthState => ({ token: loadToken() });
 
 export const authSlice = createSlice({
   name: "auth",

@@ -17,7 +17,12 @@ export function renderWithProviders(
   const store = makeStore();
   const result = render(
     <Provider store={store}>
-      <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>
+      <MemoryRouter
+        initialEntries={[route]}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
+        {ui}
+      </MemoryRouter>
     </Provider>,
   );
   return { store, ...result };

@@ -7,7 +7,7 @@ export default defineConfig({
     port: 5173,
   },
   test: {
-    environment: "jsdom", // fake browser DOM
+    environment: "happy-dom", // fake browser DOM
     setupFiles: ["./src/test/setup.ts"],
     restoreMocks: true,
   },
