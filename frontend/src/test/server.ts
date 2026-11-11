@@ -52,6 +52,7 @@ export const handlers = [
   ),
   http.get(`${AGENT}/admin/pending-approvals`, () => HttpResponse.json([])),
   http.get(`${AGENT}/admin/emails`, () => HttpResponse.json([])),
+  http.get(`${AGENT}/chat/:sessionId/messages`, () => HttpResponse.json([])),
 ];
 
 export const server = setupServer(...handlers);
