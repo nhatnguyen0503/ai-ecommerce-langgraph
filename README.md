@@ -104,16 +104,82 @@ frontend/
 
 ## API (current rebuild)
 
-| Method | Path | What it does |
-| --- | --- | --- |
-| GET | `/health` | Health check |
-| GET | `/orders` | List all orders |
-| GET | `/orders/{order_id}` | One order; the id is case-insensitive (`fi-10234` works) |
-| GET | `/orders/{order_id}/return-eligibility` | Is the order inside the 14-day return window? |
+| Method | Path | Access | What it does |
+| --- | --- | --- | --- |
+| GET | `/health` | public | Health check |
+| POST | `/auth/login` | public (rate limited) | OAuth2 password form → JWT access token |
+| GET | `/auth/me` | logged in | The current user (`id`, `email`, `role`) |
+| GET | `/orders` | admin | List all orders |
+| GET | `/orders/{order_id}` | admin or order owner | One order; the id is case-insensitive (`fi-10234` works) |
+| GET | `/orders/{order_id}/return-eligibility` | admin or order owner | Is the order inside the 14-day return window? |
 
-Unknown order ids return `404` with `{"detail": "Order XXX not found"}`.
+Errors use one shape: `{"detail": ..., "request_id": ...}`. A customer asking for someone
+else's order gets the same `404` as for a missing order.
 
-## Running it locally
+## Quick start with Docker
+
+The whole app (PostgreSQL, FastAPI backend, React frontend behind nginx) runs with one command.
+You only need [Docker Desktop](https://www.docker.com/products/docker-desktop/) — no Python or Node.
+
+### 1. Create the env files
+
+```bash
+cp backend/.env.example backend/.env
+cp backend/.env.docker.example backend/.env.docker
+```
+
+Then edit them — these values are required:
+
+- `POSTGRES_PASSWORD` (in `backend/.env`) — password for the database user.
+- `JWT_SECRET_KEY` (in `backend/.env`) — signs login tokens. Generate one with
+  `openssl rand -hex 32`.
+- `SEED_DEMO_PASSWORD` (in `backend/.env`) — password for the demo accounts created
+  on first start (dev only, never used when `APP_ENV=prod`).
+- `DATABASE_URL` (in `backend/.env.docker`) — same user, password and database name as
+  in `backend/.env`. The host must be `db`: inside Docker, containers reach each other
+  by their compose service name, and `localhost` would point to the backend container itself.
+
+Both files are git-ignored. Never commit real secrets.
+
+### 2. Start everything
+
+```bash
+docker compose up --build -d
+docker compose ps        # db and backend should show "(healthy)"
+```
+
+On startup the backend waits for PostgreSQL to be healthy, applies all database
+migrations (`alembic upgrade head`), then seeds sample orders and demo users.
+The first build takes a few minutes; later builds reuse cached layers.
+
+### 3. Open the app
+
+Open <http://localhost:3000> and log in on the **Admin dashboard** tab with:
+
+- email: `admin@example.fi`
+- password: the `SEED_DEMO_PASSWORD` you set in `backend/.env`
+
+The orders table loads from the API through nginx (`/api/...`).
+Customer demo accounts use the order emails, e.g. `aino@example.fi`.
+
+### Useful commands
+
+```bash
+docker compose logs -f backend   # follow backend logs
+docker compose down              # stop and remove containers (data is kept)
+docker compose up --build -d     # rebuild after code changes
+```
+
+> ⚠️ `docker compose down -v` also deletes the `pgdata` volume, i.e. **all database data**.
+
+### Current limitations
+
+- Chat and refund approvals still need the prototype agent API on port 8001, which is
+  not part of the Docker setup yet (see "Running it without Docker" below).
+- Swagger UI (`/docs`) is not reachable: the backend does not publish a port, only nginx
+  talks to it on the internal Docker network. Run the backend without Docker to use `/docs`.
+
+## Running it without Docker (development)
 
 Prerequisites: [Docker Desktop](https://www.docker.com/products/docker-desktop/),
 [uv](https://docs.astral.sh/uv/), and Node.js for the frontend.
@@ -195,7 +261,8 @@ approval, alongside a log of every (mocked) outbound email.
 - **Orders**: seeded into the database by `seed.py`. In production this would be a
   call into the existing Laravel order API -- only `OrderRepository` would change.
 - **Email**: mocked in the prototype (logged and stored in a `sent_emails` table).
-- **Auth**: not added yet -- planned before exposing `/admin/*` beyond localhost.
+- **Auth**: JWT login, Argon2 password hashing, admin vs. order-owner access, login rate
+  limiting. See [SECURITY.md](SECURITY.md) for the full checklist and known gaps.
 - **LLM**: Groq (`GROQ_MODEL` in `.env`, default `llama-3.3-70b-versatile`; check
   [console.groq.com](https://console.groq.com) for the current model catalog). It is used
   only to read the customer's intent and phrase the reply; all business decisions are
