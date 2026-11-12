@@ -1,0 +1,11 @@
+# Reinstalled inside the image from package-lock.json
+node_modules/
+# Rebuilt inside the image
+dist/
+# Local env files must not leak into the build (URLs are passed as build args)
+.env
+.env.*
+# Editor / VCS / OS
+.idea/
+.git
+.DS_Store
