@@ -6,6 +6,7 @@ backend/*.db
 backend/*.sqlite
 backend/.idea/
 backend/*.sqlite-*
+backend/.env.docker
 node_modules/
 frontend/dist/
 frontend/.env

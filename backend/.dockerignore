@@ -25,6 +25,8 @@
 tests/
 pytest.ini
 .pytest_cache/
+.coverage
+htmlcov/
 
 # --- Reference code & scratch files ---------------------------------------
 app_reference/
