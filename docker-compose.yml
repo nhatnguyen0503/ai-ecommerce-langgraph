@@ -12,6 +12,25 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+  backend:
+    build: ./backend
+    env_file:
+      - backend/.env
+      - backend/.env.docker
+    environment:
+      FRONTEND_ORIGIN: http://localhost:3000
+      FORWARDED_ALLOW_IPS: "*"
+    depends_on:
+      db:
+        condition: service_healthy
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
 
 volumes:
   pgdata:
