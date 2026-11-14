@@ -41,7 +41,8 @@ ORIGIN = "http://localhost:5173"
 
 def test_cors_preflight_allows_frontend_origin(client):
     response = client.options(
-        "/orders", headers={"Origin": ORIGIN, "Access-Control-Request-Method": "GET"},
+        "/orders",
+        headers={"Origin": ORIGIN, "Access-Control-Request-Method": "GET"},
     )
     assert response.status_code == 200
     assert response.headers["Access-Control-Allow-Origin"] == ORIGIN

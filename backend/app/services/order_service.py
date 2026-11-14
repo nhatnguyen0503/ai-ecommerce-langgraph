@@ -46,13 +46,17 @@ class OrderService:
             raise OrderNotFoundError(order.id)
         return order
 
-    def get_return_eligibility(self, order_id: str, now: datetime | None = None, viewer: User | None = None) -> dict:
+    def get_return_eligibility(
+        self, order_id: str, now: datetime | None = None, viewer: User | None = None
+    ) -> dict:
         order = self.get_order_for(order_id, viewer) if viewer else self.get_order(order_id)
         result = check_return_eligibility(
             {
                 "id": order.id,
                 "status": order.status,
-                "delivered_date": order.delivered_date.isoformat() if order.delivered_date else None,
+                "delivered_date": order.delivered_date.isoformat()
+                if order.delivered_date
+                else None,
             },
             now=now,
             window_days=self.window_days,
@@ -60,6 +64,8 @@ class OrderService:
 
         logger.info(
             "Return eligibility for %s: eligible=%s, days_since_delivery=%s",
-            order.id, result["eligible"], result["days_since_delivery"],
+            order.id,
+            result["eligible"],
+            result["days_since_delivery"],
         )
         return result

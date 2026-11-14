@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, Path
 from typing import Annotated
 
+from fastapi import APIRouter, Depends, Path
+
 from app.dependencies import AdminUser, CurrentUser, get_order_service
-from app.services.order_service import OrderService
 from app.schemas import OrderOut, ReturnEligibilityOut
+from app.services.order_service import OrderService
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 

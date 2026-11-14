@@ -43,6 +43,7 @@ def test_api_key_hidden_in_repr(monkeypatch):
     assert "gsk_test" not in repr_str
     assert "groq_api_key" in repr_str
 
+
 def test_prod_requires_long_jwt_secret(monkeypatch):
     monkeypatch.setenv("APP_ENV", "prod")
     monkeypatch.setenv("GROQ_API_KEY", "dummy")

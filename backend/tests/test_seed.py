@@ -1,10 +1,9 @@
+import pytest
 from sqlalchemy import func, select
 
-import pytest
-
 from app.models import Order, User
-from app.seed import ADMIN_EMAIL, SAMPLE_ORDERS, seed, seed_users
 from app.security import verify_password
+from app.seed import ADMIN_EMAIL, SAMPLE_ORDERS, seed, seed_users
 
 
 def _count(db) -> int:

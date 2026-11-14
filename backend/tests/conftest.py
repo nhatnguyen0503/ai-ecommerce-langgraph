@@ -5,18 +5,17 @@ os.environ.setdefault("JWT_SECRET_KEY", "test-secret-" + "x" * 32)
 
 from datetime import datetime, timedelta
 
-from fastapi.testclient import TestClient
-
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db
-from app.models import Order, User
-from app.main import app
-from app.security import create_access_token
 from app.dependencies import login_limiter
+from app.main import app
+from app.models import Order, User
+from app.security import create_access_token
 
 NOW = datetime(2026, 10, 10, 12, 0, 0)
 

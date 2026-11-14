@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from app.models import Order, User
-from app.services.order_service import OrderService, OrderNotFoundError
+from app.services.order_service import OrderNotFoundError, OrderService
 
 NOW = datetime(2026, 10, 10, 12, 0, 0)
 ADMIN = User(id=1, email="admin@example.fi", role="admin")
@@ -60,9 +60,8 @@ def test_check_return_past_window(service):
 
 
 def test_get_order_missing_is_logged(service, caplog):
-    with caplog.at_level(logging.INFO):
-        with pytest.raises(OrderNotFoundError):
-            service.get_order("FI-404")
+    with caplog.at_level(logging.INFO), pytest.raises(OrderNotFoundError):
+        service.get_order("FI-404")
     assert any("Order not found" in record.message for record in caplog.records)
 
 

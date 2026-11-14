@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def utc_now_naive() -> datetime:
@@ -11,4 +11,4 @@ def utc_now_naive() -> datetime:
     Remove it once the date columns are migrated to timestamptz and the code uses
     datetime.now(timezone.utc) everywhere.
     """
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)

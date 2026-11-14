@@ -33,7 +33,11 @@ def api_docs_urls(app_env: str) -> dict[str, str | None]:
     return {"docs_url": "/docs", "redoc_url": "/redoc", "openapi_url": "/openapi.json"}
 
 
-app = FastAPI(title="Smart E-commerce support agent", lifespan=lifespan, **api_docs_urls(get_settings().app_env), )
+app = FastAPI(
+    title="Smart E-commerce support agent",
+    lifespan=lifespan,
+    **api_docs_urls(get_settings().app_env),
+)
 app.include_router(orders.router)
 app.include_router(auth.router)
 register_exception_handlers(app)

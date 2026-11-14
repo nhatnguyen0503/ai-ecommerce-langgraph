@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import jwt
@@ -26,14 +26,15 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 def create_access_token(
-        subject: str,
-        role: str,
-        expires_delta: timedelta | None = None,
-        now: datetime | None = None,
+    subject: str,
+    role: str,
+    expires_delta: timedelta | None = None,
+    now: datetime | None = None,
 ) -> str:
-    """Create a JWT access token with the given subject and role, expiring after the specified timedelta."""
+    """Create a JWT access token with the given subject and role,
+    expiring after the specified timedelta."""
     settings = get_settings()
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     expire = now + (expires_delta or timedelta(minutes=settings.access_token_expire_minutes))
     payload = {
         "sub": subject,
@@ -41,7 +42,9 @@ def create_access_token(
         "exp": expire,
         "iat": now,
     }
-    return jwt.encode(payload, settings.jwt_secret_key.get_secret_value(), algorithm=settings.jwt_algorithm)
+    return jwt.encode(
+        payload, settings.jwt_secret_key.get_secret_value(), algorithm=settings.jwt_algorithm
+    )
 
 
 def decode_access_token(token: str) -> dict[str, Any]:
@@ -49,9 +52,10 @@ def decode_access_token(token: str) -> dict[str, Any]:
     settings = get_settings()
     try:
         payload = jwt.decode(
-            token, settings.jwt_secret_key.get_secret_value(),
+            token,
+            settings.jwt_secret_key.get_secret_value(),
             algorithms=[settings.jwt_algorithm],
-            options={"require": ["exp", "sub"]}
+            options={"require": ["exp", "sub"]},
         )
         return payload
     except jwt.InvalidTokenError as exc:

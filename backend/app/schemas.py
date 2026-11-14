@@ -21,7 +21,9 @@ class OrderOut(BaseModel):
     order_date: datetime
     delivered_date: datetime | None
 
-    model_config = {"from_attributes": True}  # allows Pydantic to read from SQLAlchemy model attributes
+    model_config = {
+        "from_attributes": True
+    }  # allows Pydantic to read from SQLAlchemy model attributes
 
 
 class ReturnEligibilityOut(BaseModel):
@@ -33,6 +35,7 @@ class ReturnEligibilityOut(BaseModel):
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
 
 class UserOut(BaseModel):
     id: int
