@@ -11,10 +11,11 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=TokenOut)
-def login(form: Annotated[OAuth2PasswordRequestForm, Depends()],
-          service: Annotated[AuthService, Depends(get_auth_service)],
-          _: Annotated[None, Depends(limit_login_attempts)]
-          ):
+def login(
+    form: Annotated[OAuth2PasswordRequestForm, Depends()],
+    service: Annotated[AuthService, Depends(get_auth_service)],
+    _: Annotated[None, Depends(limit_login_attempts)],
+):
     """Authenticate a user and return an access token."""
     token = service.login(form.username, form.password)
     return TokenOut(access_token=token)

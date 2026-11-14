@@ -44,9 +44,7 @@ class ReturnRequest(Base):
 
 class User(Base):
     __tablename__ = "users"
-    __table_args__ = (
-        CheckConstraint("role IN ('admin', 'customer')", name="ck_users_role"),
-    )
+    __table_args__ = (CheckConstraint("role IN ('admin', 'customer')", name="ck_users_role"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(unique=True, index=True)

@@ -1,7 +1,7 @@
 import pytest
 
-
 # --- admin: full access ---
+
 
 def test_admin_can_list_orders(client, admin_headers):
     response = client.get("/orders", headers=admin_headers)
@@ -38,7 +38,10 @@ def test_return_eligibility_missing_order_is_404(client, admin_headers):
 
 # --- authorization matrix ---
 
-@pytest.mark.parametrize("path", ["/orders", "/orders/FI-10234", "/orders/FI-10234/return-eligibility"])
+
+@pytest.mark.parametrize(
+    "path", ["/orders", "/orders/FI-10234", "/orders/FI-10234/return-eligibility"]
+)
 def test_all_order_endpoints_require_login(client, path):
     assert client.get(path).status_code == 401
 
@@ -58,12 +61,15 @@ def test_other_customer_gets_404_same_as_missing(client, other_headers, path):
     assert response.json()["detail"] == "Order FI-10234 not found"
 
 
-@pytest.mark.parametrize("bad_id", [
-    "a" * 33,  # too long
-    "FI-10234'",  # quote
-    "FI 10234",  # space
-    "FI_10234",  # underscore not allowed
-])
+@pytest.mark.parametrize(
+    "bad_id",
+    [
+        "a" * 33,  # too long
+        "FI-10234'",  # quote
+        "FI 10234",  # space
+        "FI_10234",  # underscore not allowed
+    ],
+)
 def test_invalid_order_id_is_422(client, admin_headers, bad_id):
     response = client.get(f"/orders/{bad_id}", headers=admin_headers)
     assert response.status_code == 422

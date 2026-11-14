@@ -9,7 +9,9 @@ CEILING = 100.0
 
 
 def make_order(delivery_days_ago):
-    delivered = None if delivery_days_ago is None else (NOW - timedelta(days=delivery_days_ago)).isoformat()
+    delivered = (
+        None if delivery_days_ago is None else (NOW - timedelta(days=delivery_days_ago)).isoformat()
+    )
     return {
         "id": "FI-TEST",
         "status": "delivered" if delivered else "in_transit",
@@ -74,3 +76,14 @@ def test_non_positive_refund_is_rejected(amount):
 
 def test_ceiling_is_configurable():
     assert decide_refund_approval(150, ceiling_eur=200) == "auto_approved"
+
+
+def test_not_delivered_reason_is_readable():
+    result = check_return_eligibility(
+        {"id": "FI-1", "status": "in_transit", "delivered_date": None}
+    )
+    assert result["eligible"] is False
+    assert result["reason"] == (
+        "Order FI-1 has not been delivered yet (status: in_transit), "
+        "so return eligibility cannot be checked."
+    )

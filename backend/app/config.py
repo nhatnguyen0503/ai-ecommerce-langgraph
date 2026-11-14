@@ -1,9 +1,9 @@
 from functools import lru_cache
-
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import SecretStr, model_validator
 from pathlib import Path
 from typing import Literal
+
+from pydantic import SecretStr, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent  # .../backend
 
@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
 
     # LLM (Groq -- https://console.groq.com for keys + the current model catalog)
-    groq_api_key: SecretStr = ""
+    groq_api_key: SecretStr = SecretStr("")
     groq_model: str = "llama-3.3-70b-versatile"
 
     # Business rules
@@ -42,7 +42,9 @@ class Settings(BaseSettings):
     def _require_key_in_prod(self):
         if self.app_env == "prod" and not self.groq_api_key:
             raise ValueError(
-                "GROQ_API_KEY is required when APP_ENV=prod. Set it as an environment variable or in backend/.env.")
+                "GROQ_API_KEY is required when APP_ENV=prod. "
+                "Set it as an environment variable or in backend/.env."
+            )
         if self.app_env == "prod" and len(self.jwt_secret_key.get_secret_value()) < 32:
             raise ValueError("JWT_SECRET_KEY must be at least 32 characters when APP_ENV=prod.")
         return self

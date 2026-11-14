@@ -7,6 +7,7 @@ ORIGIN = "http://localhost:5173"
 
 # --- 14.3 security headers ---
 
+
 @pytest.mark.parametrize("path", ["/health", "/orders/FI-10234", "/does-not-exist"])
 def test_security_headers_on_every_response(client, path):
     # 200, 401 and 404 responses must all carry the headers
@@ -16,6 +17,7 @@ def test_security_headers_on_every_response(client, path):
 
 
 # --- 14.4 docs only outside prod ---
+
 
 def test_docs_disabled_in_prod():
     assert api_docs_urls("prod") == {"docs_url": None, "redoc_url": None, "openapi_url": None}
@@ -27,6 +29,7 @@ def test_docs_enabled_outside_prod(env):
 
 
 # --- 14.4 tighter CORS ---
+
 
 def test_cors_allows_authorization_header(client):
     response = client.options(

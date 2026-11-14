@@ -4,8 +4,8 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.request_context import request_id_var
-from app.services.order_service import OrderNotFoundError
 from app.services.auth_service import InvalidCredentialsError
+from app.services.order_service import OrderNotFoundError
 
 
 def error_response(status_code: int, detail, headers: dict[str, str] | None = None) -> JSONResponse:

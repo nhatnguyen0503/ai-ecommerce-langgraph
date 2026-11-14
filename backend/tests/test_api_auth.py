@@ -1,10 +1,9 @@
 import pytest
-
-from app.models import User
-from app.security import decode_access_token, hash_password
-from app.dependencies import require_admin
-from app.security import create_access_token
 from fastapi import HTTPException
+
+from app.dependencies import require_admin
+from app.models import User
+from app.security import create_access_token, decode_access_token, hash_password
 
 PASSWORD = "test_password"
 
@@ -45,7 +44,7 @@ def test_login_email_is_case_insensitive(client, user):
     [
         ("aino@example.fi", "wrong-password"),  # wrong password
         ("nobody@EXAMPLE.FI", PASSWORD),  # non-existent user
-    ]
+    ],
 )
 def test_bad_credentials_give_same_401(client, user, username, password):
     response = _login(client, username, password)
@@ -81,11 +80,14 @@ def test_me_without_token_is_401(client):
     assert response.headers["www-authenticate"] == "Bearer"
 
 
-@pytest.mark.parametrize("token", [
-    "not-a-jwt",
-    create_access_token(subject="abc", role="admin"),  # sub is not an int
-    create_access_token(subject="999999", role="admin"),  # user does not exist
-])
+@pytest.mark.parametrize(
+    "token",
+    [
+        "not-a-jwt",
+        create_access_token(subject="abc", role="admin"),  # sub is not an int
+        create_access_token(subject="999999", role="admin"),  # user does not exist
+    ],
+)
 def test_me_with_bad_token_is_401(client, user, token):
     response = client.get("/auth/me", headers=_bearer(token))
     assert response.status_code == 401

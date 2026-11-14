@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
+from app.clock import utc_now_naive
 from app.config import get_settings
 
 settings = get_settings()
@@ -8,19 +9,21 @@ ApprovalStatus = Literal["auto_approved", "pending"]
 
 
 def check_return_eligibility(
-        order: dict[str, Any],
-        now: datetime | None = None,
-        window_days: int | None = None,
+    order: dict[str, Any],
+    now: datetime | None = None,
+    window_days: int | None = None,
 ) -> dict[str, Any]:
-    now = now or datetime.utcnow()
+    now = now or utc_now_naive()
     window = window_days if window_days is not None else settings.return_window_days
 
     if not order.get("delivered_date"):
         return {
             "eligible": False,
             "days_since_delivery": None,
-            "reason": f"Order {order['id']} did not delivered(status: {order['status']}), "
-                      "so cant calculate return eligibility ",
+            "reason": (
+                f"Order {order['id']} has not been delivered yet "
+                f"(status: {order['status']}), so return eligibility cannot be checked."
+            ),
         }
     delivered = datetime.fromisoformat(order["delivered_date"])
     days_since = (now - delivered).days
@@ -29,8 +32,10 @@ def check_return_eligibility(
     if eligible:
         reason = f"Delivered {days_since} day(s) ago, within the {window}-day return window."
     else:
-        reason = (f"Delivered {days_since} day(s) ago, past the {window}-day return window "
-                  f"by {days_since - window} day(s).")
+        reason = (
+            f"Delivered {days_since} day(s) ago, past the {window}-day return window "
+            f"by {days_since - window} day(s)."
+        )
     return {"eligible": eligible, "days_since_delivery": days_since, "reason": reason}
 
 

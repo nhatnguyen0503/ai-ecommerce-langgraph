@@ -1,5 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
+from typing import TypedDict
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,14 +27,24 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down")
 
 
-def api_docs_urls(app_env: str) -> dict[str, str | None]:
+class DocsUrls(TypedDict):
+    docs_url: str | None
+    redoc_url: str | None
+    openapi_url: str | None
+
+
+def api_docs_urls(app_env: str) -> DocsUrls:
     """Swagger/ReDoc/OpenAPI are for development only."""
     if app_env == "prod":
         return {"docs_url": None, "redoc_url": None, "openapi_url": None}
     return {"docs_url": "/docs", "redoc_url": "/redoc", "openapi_url": "/openapi.json"}
 
 
-app = FastAPI(title="Smart E-commerce support agent", lifespan=lifespan, **api_docs_urls(get_settings().app_env), )
+app = FastAPI(
+    title="Smart E-commerce support agent",
+    lifespan=lifespan,
+    **api_docs_urls(get_settings().app_env),
+)
 app.include_router(orders.router)
 app.include_router(auth.router)
 register_exception_handlers(app)
