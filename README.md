@@ -1,5 +1,7 @@
 # Smart E-commerce Customer Support Agent (LangGraph)
 
+[![CI](https://github.com/nhatnguyen0503/ai-ecommerce-langgraph/actions/workflows/ci.yml/badge.svg)](https://github.com/nhatnguyen0503/ai-ecommerce-langgraph/actions/workflows/ci.yml)
+
 A customer-support chatbot that actually looks up orders in a database, applies
 Finland's 14-day consumer return window, and -- for refunds over 100 EUR --
 pauses itself with LangGraph's **human-in-the-loop** interrupt until an admin
