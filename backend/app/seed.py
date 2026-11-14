@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -18,7 +19,7 @@ def days_ago(n: int) -> datetime:
     return utc_now_naive() - timedelta(days=n)
 
 
-SAMPLE_ORDERS = [
+SAMPLE_ORDERS: list[dict[str, Any]] = [
     # delivered 3 days ago, 29.90€ -> return auto-approved
     dict(
         id="FI-10234",

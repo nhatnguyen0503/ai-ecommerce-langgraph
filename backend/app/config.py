@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
 
     # LLM (Groq -- https://console.groq.com for keys + the current model catalog)
-    groq_api_key: SecretStr = ""
+    groq_api_key: SecretStr = SecretStr("")
     groq_model: str = "llama-3.3-70b-versatile"
 
     # Business rules
