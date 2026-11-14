@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Literal
 
 from app.config import get_settings
+from app.clock import utc_now_naive
 
 settings = get_settings()
 ApprovalStatus = Literal["auto_approved", "pending"]
@@ -12,15 +13,17 @@ def check_return_eligibility(
         now: datetime | None = None,
         window_days: int | None = None,
 ) -> dict[str, Any]:
-    now = now or datetime.utcnow()
+    now = now or utc_now_naive()
     window = window_days if window_days is not None else settings.return_window_days
 
     if not order.get("delivered_date"):
         return {
             "eligible": False,
             "days_since_delivery": None,
-            "reason": f"Order {order['id']} did not delivered(status: {order['status']}), "
-                      "so cant calculate return eligibility ",
+             "reason": (
+                f"Order {order['id']} has not been delivered yet "
+                f"(status: {order['status']}), so return eligibility cannot be checked."
+            ),
         }
     delivered = datetime.fromisoformat(order["delivered_date"])
     days_since = (now - delivered).days

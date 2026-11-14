@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.models import Order, User
 from app.security import hash_password
+from app.clock import utc_now_naive
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ ADMIN_EMAIL = "admin@example.com"
 
 
 def days_ago(n: int) -> datetime:
-    return datetime.utcnow() - timedelta(days=n)
+    return utc_now_naive() - timedelta(days=n)
 
 
 SAMPLE_ORDERS = [
