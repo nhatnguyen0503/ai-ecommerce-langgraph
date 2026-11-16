@@ -162,6 +162,11 @@ Open <http://localhost:3000> and log in on the **Admin dashboard** tab with:
 - password: the `SEED_DEMO_PASSWORD` you set in `backend/.env`
 
 The orders table loads from the API through nginx (`/api/...`).
+
+nginx forwards `/api/...` to the address in `BACKEND_URL` (default `http://backend:8000`,
+the backend service in docker compose). It is read when the container starts, so the same
+frontend image can run elsewhere with `-e BACKEND_URL=https://<your-backend-host>`.
+
 Customer demo accounts use the order emails, e.g. `aino@example.fi`.
 
 ### Useful commands
