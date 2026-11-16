@@ -179,6 +179,17 @@ docker compose up --build -d     # rebuild after code changes
 
 > ⚠️ `docker compose down -v` also deletes the `pgdata` volume, i.e. **all database data**.
 
+### Creating users in production
+
+Demo users are only seeded in development. With `APP_ENV=prod`, create accounts with the
+built-in command (the password is asked twice and never shown or passed as an argument):
+
+```bash
+docker compose exec backend python -m app.create_user --email admin@example.com --role admin
+```
+
+Roles: `admin` or `customer` (default). Passwords must be 12–128 characters.
+
 ### Current limitations
 
 - Chat and refund approvals still need the prototype agent API on port 8001, which is
