@@ -30,7 +30,6 @@ htmlcov/
 
 # --- Reference code & scratch files ---------------------------------------
 app_reference/
-debug_schema.py
 
 # --- Editor / version control / OS ----------------------------------------
 .idea/

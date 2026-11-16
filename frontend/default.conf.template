@@ -10,13 +10,19 @@ server {
     add_header X-Frame-Options "DENY" always;
     add_header Referrer-Policy "no-referrer" always;
 
-    # API: same origin for the browser, forwarded to the backend container.
-    # The trailing "/" in proxy_pass strips the /api prefix: /api/orders -> /orders
+    # API: same origin for the browser, forwarded to the backend.
+    # BACKEND_URL is substituted from the environment when the container starts
+    # (official nginx image: /etc/nginx/templates/*.template -> /etc/nginx/conf.d/).
+    # The trailing "/" strips the /api prefix: /api/orders -> /orders
     location /api/ {
-        proxy_pass http://backend:8000/;
-        proxy_set_header Host $host;
+        proxy_pass ${BACKEND_URL}/;
+        # Cloud platforms route by Host, so send the backend's own host name.
+        proxy_set_header Host $proxy_host;
+        proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # Send the host name during the TLS handshake (SNI) when BACKEND_URL is https://
+        proxy_ssl_server_name on;
     }
 
     # Single-page app: unknown paths (e.g. /admin after F5) return index.html,
