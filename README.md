@@ -2,23 +2,55 @@
 
 [![CI](https://github.com/nhatnguyen0503/ai-ecommerce-langgraph/actions/workflows/ci.yml/badge.svg)](https://github.com/nhatnguyen0503/ai-ecommerce-langgraph/actions/workflows/ci.yml)
 
+**Live demo:** coming soon (cloud deployment is in progress).
+
 A customer-support chatbot that actually looks up orders in a database, applies
 Finland's 14-day consumer return window, and -- for refunds over 100 EUR --
 pauses itself with LangGraph's **human-in-the-loop** interrupt until an admin
 approves or rejects the request from a small dashboard. Once decided, the
 agent resumes on its own and "emails" the customer the outcome.
 
-- Backend: **Python 3.10, FastAPI, SQLAlchemy 2.0, LangGraph, Groq (via langchain-groq)**
+- Backend: **Python 3.12, FastAPI, SQLAlchemy 2.0, LangGraph, Groq (via langchain-groq)**
 - Data: **PostgreSQL 17** (Docker Compose) with **Alembic** migrations; SQLite also works for a quick run
-- Frontend: **React + Vite**
-- Tooling: **uv**, **pytest**
+- Frontend: **React 18 + TypeScript + Vite**, Redux Toolkit / RTK Query, React Router
+- Tooling: **uv**, ruff, mypy, pytest (backend) · ESLint, Vitest, React Testing Library, MSW (frontend)
+- DevOps: **Docker** (multi-stage images, docker compose), **GitHub Actions** (CI, images on ghcr.io)
 
 > **Repository status -- work in progress**
 >
 > - `backend/app_reference/` is the original working prototype (full LangGraph chat and admin approval flow, kept as a reference).
 > - `backend/app/` is the production-style rebuild. Done so far: typed settings (pydantic-settings),
->   layered architecture (router -> service -> repository), PostgreSQL + Alembic, and 23 pytest tests.
->   The LangGraph chat and admin flow are moved over from the prototype step by step, each through its own pull request.
+>   layered architecture (router -> service -> repository), PostgreSQL + Alembic, JWT login with
+>   admin and order-owner access, Docker images and CI/CD, with 122 backend tests + 15 frontend tests.
+> - The LangGraph chat and admin flow are moved over from the prototype step by step, each through its own pull request.
+
+## System overview
+
+```mermaid
+flowchart LR
+    Browser["Browser<br/>React + TypeScript"]
+    subgraph Docker["docker compose"]
+        Nginx["nginx<br/>static files + /api proxy"]
+        API["FastAPI backend<br/>auth, orders, return rules"]
+        DB[("PostgreSQL 17")]
+    end
+    Agent["Prototype agent API :8001<br/>LangGraph chat + approvals"]
+    LLM["Groq LLM"]
+
+    Browser -->|"/ (SPA)"| Nginx
+    Browser -->|"/api/* (JWT)"| Nginx
+    Nginx -->|BACKEND_URL| API
+    API --> DB
+    Browser -.->|"chat, approvals"| Agent
+    Agent --> LLM
+```
+
+```mermaid
+flowchart LR
+    PR["Pull request"] --> CI["GitHub Actions<br/>lint, types, tests, migrations, docker build"]
+    CI -->|"merge to main"| Publish["Push images to ghcr.io<br/>tag = commit SHA"]
+    Publish -.->|"next step"| Deploy["Cloud deploy (planned)"]
+```
 
 ## How the human-in-the-loop flow works
 
@@ -77,8 +109,21 @@ HTTP request
   -> PostgreSQL
 ```
 
+Login and access control:
+
+```
+POST /auth/login
+  -> routers/auth.py                   OAuth2 password form, rate limited per client
+  -> services/auth_service.py          verifies the Argon2 hash, issues a JWT
+  -> repositories/user_repository.py
+
+Protected endpoints
+  -> dependencies.py                   decodes the JWT -> CurrentUser / AdminUser
+  -> order endpoints                   admin sees every order; a customer only their own (else 404)
+```
+
 - `dependencies.py` wires the layers per request with FastAPI `Depends` (session -> repository -> service).
-- `main.py` turns `OrderNotFoundError` into an HTTP 404 in one place.
+- `errors.py` / `main.py` turn domain errors into one JSON error shape (`detail`, `request_id`) in one place.
 - The decisions (order lookup, 14-day window, 100 EUR ceiling) are plain Python and fully tested.
   The LangGraph agent will call `OrderService` directly as its tools; the LLM only reads the
   customer's message and writes the reply.
@@ -86,22 +131,37 @@ HTTP request
 ## Project layout
 
 ```
-docker-compose.yml          PostgreSQL 17 for local development
+docker-compose.yml            db + backend + nginx frontend
+SECURITY.md                   security checklist and known gaps
+.github/
+  workflows/ci.yml            CI: lint, types, tests, migrations, Docker build, image publish
+  pull_request_template.md
 backend/
+  Dockerfile                  multi-stage image (uv), runs migrations then uvicorn
   app/
-    routers/                HTTP endpoints
-    services/               business flow (OrderService)
-    repositories/           database access (OrderRepository)
-    agent/business.py       pure business rules (14-day return window)
-    models.py, schemas.py, database.py, config.py, dependencies.py, seed.py
-  app_reference/            original prototype (LangGraph chat + admin approval flow)
-  alembic/                  database migrations
-  tests/                    repository, service and API tests
-  pyproject.toml, uv.lock   dependencies managed by uv
+    routers/                  HTTP endpoints (auth, orders)
+    services/                 business flow (AuthService, OrderService)
+    repositories/             database access (OrderRepository, UserRepository)
+    agent/business.py         pure business rules (14-day return window)
+    security.py               password hashing (Argon2) and JWT
+    dependencies.py           per-request wiring, current user and admin checks
+    rate_limit.py             login rate limiter
+    create_user.py            CLI to create accounts in production
+    models.py, schemas.py, database.py, config.py, seed.py, main.py
+  app_reference/              original prototype (LangGraph chat + admin approval flow)
+  alembic/                    database migrations
+  tests/                      unit and API tests (pytest)
+  pyproject.toml, uv.lock     dependencies managed by uv
 frontend/
+  Dockerfile                  builds the app, serves it with nginx
+  default.conf.template       nginx config (BACKEND_URL is filled in at start)
   src/
-    components/             ChatWidget.jsx (customer chat), AdminDashboard.jsx (approval queue)
-    api.js                  fetch wrappers around the backend
+    components/               ChatWidget, AdminDashboard, OrdersTable
+    features/                 auth (Redux slice, RequireAdmin) and chat state
+    pages/                    LoginPage, NotFound
+    services/                 RTK Query APIs (backendApi, agentApi)
+    store.ts                  Redux store
+    test/                     test setup, MSW mock server, render helpers
 ```
 
 ## API (current rebuild)
@@ -247,7 +307,7 @@ The chat and admin endpoints still live in the prototype. Run it on its own SQLi
 
 ```bash
 cd backend
-DATABASE_URL=sqlite:///./prototype.db uv run uvicorn app_reference.main:app --reload
+DATABASE_URL=sqlite:///./prototype.db uv run uvicorn app_reference.main:app --reload --port 8001
 ```
 
 Then the frontend:
@@ -255,13 +315,14 @@ Then the frontend:
 ```bash
 cd frontend
 npm install
-cp .env.example .env        # defaults to http://localhost:8000
+cp .env.example .env        # API on :8000, prototype agent on :8001
 npm run dev
 ```
 
 Open `http://localhost:5173`. The **Customer chat** tab is the storefront
 widget; the **Admin dashboard** tab is where refunds over 100 EUR show up for
 approval, alongside a log of every (mocked) outbound email.
+The Admin dashboard needs an admin login (`admin@example.fi` and your `SEED_DEMO_PASSWORD`).
 
 1. In the chat tab: `I want to return order FI-10236, it arrived damaged.`
    FI-10236 is a delivered, in-window, 219 EUR order -- above the 100 EUR
@@ -273,6 +334,24 @@ approval, alongside a log of every (mocked) outbound email.
 4. Try `I want to return order FI-10234` (29.90 EUR) to see the auto-approve path.
 5. Try `I want to return order FI-10235` (delivered 18 days ago) to see the
    14-day policy reject it.
+
+## Development workflow
+
+- Every change goes through a branch and a pull request; `main` is protected and needs all
+  four CI checks (backend, migrations, frontend, docker) to pass.
+- Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/)
+  (`feat:`, `fix:`, `docs:`, `ci:` ...); pull requests are squash-merged.
+- After a merge to `main`, CI publishes both images to GitHub Container Registry,
+  tagged with the commit SHA and `latest`.
+
+Checks to run before opening a pull request:
+
+```bash
+# backend
+cd backend && uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
+# frontend
+cd frontend && npm run lint && npm run typecheck && npm run test:run && npm run build
+```
 
 ## Notes / what's mocked vs. real
 
