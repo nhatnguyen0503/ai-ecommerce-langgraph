@@ -12,7 +12,7 @@ from app.security import hash_password
 
 logger = logging.getLogger(__name__)
 
-ADMIN_EMAIL = "admin@example.com"
+ADMIN_EMAIL = "admin@example.fi"
 
 
 def days_ago(n: int) -> datetime:
