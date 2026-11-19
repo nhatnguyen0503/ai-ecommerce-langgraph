@@ -245,7 +245,7 @@ Demo users are only seeded in development. With `APP_ENV=prod`, create accounts 
 built-in command (the password is asked twice and never shown or passed as an argument):
 
 ```bash
-docker compose exec backend python -m app.create_user --email admin@example.com --role admin
+docker compose exec backend python -m app.create_user --email admin@your-shop.fi --role admin
 ```
 
 Roles: `admin` or `customer` (default). Passwords must be 12–128 characters.

@@ -1,7 +1,7 @@
 """Create a user account from the command line (production has no demo seed).
 
 Usage (inside the backend container):
-    python -m app.create_user --email admin@demo.fi --role admin
+    python -m app.create_user --email admin@your-shop.fi --role admin
 The password is asked interactively and never passed as an argument.
 """
 
